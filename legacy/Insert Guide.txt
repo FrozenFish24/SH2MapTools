@@ -1,0 +1,24 @@
+1. Configure SCALE and TRANSLATION constants in SH2MapRip.py and convert_to_sh2.py
+2. Dump map Geometry with SH2MapRip.py, note down the vertex and IB offsets for the object after the one being modified
+3. Note object and primitive to modify
+4. Make modifications ensuring vertices have only one set of UV coords (see below for Blender instructions)
+5. Export to obj (triangulate, no materials)
+6. Run convert_to_sh2.py on exported obj producing a corrected obj and index list
+7. Feed index list to NvTriStrip (args: -s -cs 4096) producing an index list for a tri strip
+8. Configure the starting index where the new strip will be inserted and number of vertices
+9. Provide produced index list and a copy of the original index buffer to ibuf_fixer.py
+10. Provide the updated obj file produced in step 6 to vertexPacker.py, producing the vert data in binary form
+11. Update map_helper.py with the object and primitive index (determined in step 2) being edited
+12. Update map_helper.py with the amount of verts being added and the size of the binary in bytes
+13. Update map_helper.py with the size of the original and modified index buffers
+14. Run map_helper.py on the map file to update all size fields
+15. With a hex editor open the map file, go to the vertex offset found in step two and insert new vert data
+16. With a hex editor search for the first several bytes of the index buffer, and replace the whole thing with the new one
+
+Blender:
+1. Create or import model in Blender
+2. In the UV editor do "Seams from Islands"
+3. In 3D View select all seams and Edge Split
+4. Export as obj
+	- Untick Write Materials
+	- Tick Triangulate faces

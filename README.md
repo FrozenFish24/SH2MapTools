@@ -1,2 +1,2 @@
 # SH2MapTools
-Tools for modifying Silent Hill 2 PC map files
+Very work in progress. Requires [Construct](https://construct.readthedocs.io/en/latest/)
