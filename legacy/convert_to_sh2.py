@@ -2,11 +2,6 @@ import sys
 import os
 import struct
 
-SCALE_VAL = 0.0060
-X_TRANS = 0.0
-Y_TRANS = 0.0
-Z_TRANS = 0.0
-
 name = 'ps85_02_08'
 
 def main():
@@ -15,9 +10,34 @@ def main():
     normList = []
     faceList = []
     
+    SCALE_VAL = 0.0060
+    X_TRANS = 0.0
+    Y_TRANS = 0.0
+    Z_TRANS = 0.0
+
     vertToUV = {}
     vertToNorm = {}
     with open('%s.obj' % name, 'r') as f:
+        for line in f:
+            split = line.split('\n')
+            split = split[0].split(' ')
+
+            if(split[0] == '#'):
+                if(split[1] == 'SCALE_VAL'):
+                    SCALE_VAL = float(split[3])
+                if(split[1] == 'X_TRANS'):
+                    X_TRANS = float(split[3])
+                if(split[1] == 'Y_TRANS'):
+                    Y_TRANS = float(split[3])
+                if(split[1] == 'Z_TRANS'):
+                    Z_TRANS = float(split[3])
+
+        print(f'SCALE_VAL = {SCALE_VAL}\n' \
+              f'X_TRANS = {X_TRANS}\n' \
+              f'Y_TRANS = {Y_TRANS}\n' \
+              f'Z_TRANS = {Z_TRANS}')
+
+        f.seek(0)
         for line in f:
             split = line.split('\n')
             split = split[0].split(' ')
