@@ -3,11 +3,11 @@ import os
 import struct
 
 SCALE_VAL = 0.0060
-X_TRANS = 360.0
+X_TRANS = 0.0
 Y_TRANS = 0.0
-Z_TRANS = -126.0
+Z_TRANS = 0.0
 
-name = 'obj'
+name = 'ps85_02_08'
 
 def main():
     vertList = []
@@ -61,7 +61,7 @@ def main():
 
     with open('%s-out.obj' % name, 'w') as f:
         for v in vertList:
-            f.write('v %f %f %f\n' % ((v[0] - X_TRANS) * (1/SCALE_VAL), (v[1] - Y_TRANS) * (1/SCALE_VAL), (v[2] - Z_TRANS) * (1/SCALE_VAL)))
+            f.write('v %f %f %f\n' % ((v[0] / SCALE_VAL) + X_TRANS, (v[1] / SCALE_VAL) + Y_TRANS, (v[2] / SCALE_VAL) + Z_TRANS))
         for uv in newUVList:
             f.write('vt %f %f \n' % (uv[0], 1.0 - uv[1]))
         for norm in newNormList:

@@ -193,8 +193,6 @@ def buildObj(objInd, primInd, vertList, faceList):
     objString += 'o Object_%02d_%02d\n' % (objInd, primInd)
 
     for vert in vertList:
-        #objString += 'v %f %f %f\n' % (vert[0], vert[1], vert[2])
-        #objString += 'v %f %f %f\n' % ((vert[0] * SCALE_VAL) + X_TRANS, (vert[1] * SCALE_VAL) + Y_TRANS, (vert[2] * SCALE_VAL) + Z_TRANS)
         objString += 'v %f %f %f\n' % ((vert[0] - X_TRANS) * SCALE_VAL, (vert[1] - Y_TRANS) * SCALE_VAL, (vert[2] - Z_TRANS) * SCALE_VAL)
     for uv in vertList:
         if(len(uv) == 5):
@@ -230,13 +228,9 @@ def centerObj(boundingVolume):
     minZ = boundingVolume[2]
     maxZ = boundingVolume[6]
 
-    centerX = (maxX + minX) / 2
-    centerY = (maxY + minY) / 2
-    centerZ = (maxZ + minZ) / 2
-
-    X_TRANS = centerX
-    #Y_TRANS = centerY
-    Z_TRANS = centerZ
+    X_TRANS = (maxX + minX) / 2
+    Y_TRANS = 0.0 #(maxY + minY) / 2
+    Z_TRANS = (maxZ + minZ) / 2
 
 def writeObj(filename, objString):
 
