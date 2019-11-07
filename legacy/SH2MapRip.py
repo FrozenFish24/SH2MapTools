@@ -40,8 +40,7 @@ def main():
 
                 print(currentPrimInfo)
 
-                wavefrontObj += 'o Object_%02d_%02d\n' % (i, j)
-                wavefrontObj += buildObj(vertList, faceList)
+                wavefrontObj += buildObj(i, j, vertList, faceList)
                 total_index += primTotal * currentPrimInfo[5]
 
                 #DEBUGGERY
@@ -185,8 +184,14 @@ def extractFaces(indexBuf, baseVertexIndex, primCount, skip, startIndex):
 
     return faceList
 
-def buildObj(vertList, faceList):
-    objString = ''
+def buildObj(objInd, primInd, vertList, faceList):
+    objString = f'# SCALE_VAL = {SCALE_VAL}\n' \
+                f'# X_TRANS = {X_TRANS}\n' \
+                f'# Y_TRANS = {Y_TRANS}\n' \
+                f'# Z_TRANS = {Z_TRANS}\n'
+
+    objString += 'o Object_%02d_%02d\n' % (objInd, primInd)
+
     for vert in vertList:
         #objString += 'v %f %f %f\n' % (vert[0], vert[1], vert[2])
         #objString += 'v %f %f %f\n' % ((vert[0] * SCALE_VAL) + X_TRANS, (vert[1] * SCALE_VAL) + Y_TRANS, (vert[2] * SCALE_VAL) + Z_TRANS)
