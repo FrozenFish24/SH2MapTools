@@ -54,7 +54,7 @@ Vertex36 = Struct(
     'a' / Float32l,
     'b' / Float32l,
     'c' / Float32l,
-    'unk' / Int32ul, # Vertex R8G8B8A8 maybe?
+    'color' / Int32ul, # Vertex R8G8B8A8, alpha always 0xFF
     'u' / Float32l,
     'v' / Float32l
 )
