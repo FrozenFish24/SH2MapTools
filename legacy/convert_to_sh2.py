@@ -37,7 +37,7 @@ def main():
     #print(f'Tex: {tex_set[vert_dict[0][1]]}')
     #print(f'Color: {color_set[vert_dict[0][2]]}')
 
-    # Write out vertices
+    # Write vertices to file
     with open(f'{name}-out.bin', 'wb') as f:
         for i in range(0, len(pos_set)):
             x = (pos_set[i][0] / SCALE_VAL) + X_TRANS
@@ -59,17 +59,7 @@ def main():
             v = 1.0 - tex_set[vert_dict[i][1]][1]
             f.write(struct.pack('<2f', u, v))
 
-    # Write out index buffer for stripification
-    #with open(f'{name}-ibuf.txt', 'w') as f:
-    #    for face in triset.indices:
-    #        #INVERTED WINDING ORDER
-    #        f.write(f'{face[2][0]} ')
-    #        f.write(f'{face[1][0]} ')
-    #        f.write(f'{face[0][0]} ')
-    #
-    #    f.write('-1')
-
-    # Stripify index buffer
+    # Stripify and write index buffer to file
     trilist = []
     for face in triset.indices:
         #INVERTED WINDING ORDER
