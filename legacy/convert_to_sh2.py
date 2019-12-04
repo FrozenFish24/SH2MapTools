@@ -2,101 +2,86 @@ import sys
 import os
 import struct
 
-name = 'ps85_02_08'
+import collada
+import numpy
+
+SCALE_VAL = 0.0060
+X_TRANS = 0.0
+Y_TRANS = 0.0
+Z_TRANS = 0.0
+
+name = 'bars-cleaned-up'
+vert_mode = 36
 
 def main():
-    vertList = []
-    uvList = []
-    normList = []
-    faceList = []
+    mesh = collada.Collada(f'{name}.dae')
+
+    geom = mesh.geometries[0]
+    triset = geom.primitives[0]
+
+    # TODO: Read pycollada docs, this is probably tremendously inefficient
+    pos_set = triset.sources['VERTEX'][0][4]
+    normal_set = triset.sources['NORMAL'][0][4]
+    tex_set = triset.sources['TEXCOORD'][0][4]
+    color_set = triset.sources['COLOR'][0][4]
+
+    vert_dict = {}
+    for t in triset.indices:
+        for v in t:
+            vert_dict[v[0]] = (v[1], v[2], v[3])
     
-    SCALE_VAL = 0.0060
-    X_TRANS = 0.0
-    Y_TRANS = 0.0
-    Z_TRANS = 0.0
+    print(f'Pos: {pos_set[0]}')
+    print(f'Normal: {normal_set[vert_dict[0][0]]}')
+    print(f'Tex: {tex_set[vert_dict[0][1]]}')
+    print(f'Color: {color_set[vert_dict[0][2]]}')
 
-    vertToUV = {}
-    vertToNorm = {}
-    with open('%s.obj' % name, 'r') as f:
-        for line in f:
-            split = line.split('\n')
-            split = split[0].split(' ')
+    # Write out vertices
+    with open('bars-in-place-out.bin', 'wb') as f:
+        for i in range(0, len(pos_set)):
+            f.write(struct.pack('<6f', pos_set[i][0], pos_set[i][1], pos_set[i][2], normal_set[vert_dict[i][0]][0], normal_set[vert_dict[i][0]][1], normal_set[vert_dict[i][0]][2]))
 
-            if(split[0] == '#'):
-                if(split[1] == 'SCALE_VAL'):
-                    SCALE_VAL = float(split[3])
-                if(split[1] == 'X_TRANS'):
-                    X_TRANS = float(split[3])
-                if(split[1] == 'Y_TRANS'):
-                    Y_TRANS = float(split[3])
-                if(split[1] == 'Z_TRANS'):
-                    Z_TRANS = float(split[3])
+            if vert_mode == 36:
+                r = int(color_set[vert_dict[0][2]][0] * 255)
+                g = int(color_set[vert_dict[0][2]][1] * 255)
+                b = int(color_set[vert_dict[0][2]][2] * 255)
+                f.write(struct.pack('<BBBB', r, g, b, 255))
 
-        print(f'SCALE_VAL = {SCALE_VAL}\n' \
-              f'X_TRANS = {X_TRANS}\n' \
-              f'Y_TRANS = {Y_TRANS}\n' \
-              f'Z_TRANS = {Z_TRANS}')
+            f.write(struct.pack('<2f', tex_set[vert_dict[i][1]][0], tex_set[vert_dict[i][1]][1]))
 
-        f.seek(0)
-        for line in f:
-            split = line.split('\n')
-            split = split[0].split(' ')
-
-            if(split[0] == 'v'):
-                    vert = (float(split[1]), float(split[2]), float(split[3]))
-                    vertList.append(vert)
-            elif(split[0] == 'vt'):
-                    uv = (float(split[1]), float(split[2]))
-                    uvList.append(uv)
-            elif(split[0] == 'vn'):
-                    norm = (float(split[1]), float(split[2]), float(split[3]))
-                    normList.append(norm)
-            elif(split[0] == 'f'):
-                one = split[1].split('/')
-                two = split[2].split('/')
-                three = split[3].split('/')
-
-                faceList.append((int(one[0]) - 1, int(two[0]) - 1, int(three[0]) - 1))
-
-                # Record Vert to UV correspondence
-                vertToUV[int(one[0]) - 1] = int(one[1]) - 1
-                vertToUV[int(two[0]) - 1] = int(two[1]) - 1
-                vertToUV[int(three[0]) - 1] = int(three[1]) - 1
-
-                # Record Vert to Normal correspondence
-                vertToNorm[int(one[0]) - 1] = int(one[2]) - 1
-                vertToNorm[int(two[0]) - 1] = int(two[2]) - 1
-                vertToNorm[int(three[0]) - 1] = int(three[2]) - 1
-
-    newUVList = []
-    for i in sorted(vertToUV):
-        newUVList.append(uvList[vertToUV[i]])
-
-    newNormList = []
-    for i in sorted(vertToNorm):
-        newNormList.append(normList[vertToNorm[i]])
-
-    if(len(vertList) != len(newUVList) or len(vertList) != len(newNormList)):
-        print('Error: different list lengths v%d, u%d n%d' % (len(vertList), len(newUVList), len(newNormList)))
-
-    with open('%s-out.obj' % name, 'w') as f:
-        for v in vertList:
-            f.write('v %f %f %f\n' % ((v[0] / SCALE_VAL) + X_TRANS, (v[1] / SCALE_VAL) + Y_TRANS, (v[2] / SCALE_VAL) + Z_TRANS))
-        for uv in newUVList:
-            f.write('vt %f %f \n' % (uv[0], 1.0 - uv[1]))
-        for norm in newNormList:
-            f.write('vn %f %f %f \n' % (norm[0], norm[1], norm[2]))
-        for face in faceList:
-            f.write('f {0}/{0}/{0} {1}/{1}/{1} {2}/{2}/{2}\n'.format(face[0] + 1, face[1] + 1, face[2] + 1))
-
-    with open('%s-ibuf.txt' % name, 'w') as f:
-        for face in faceList:
+    # Write out index buffer for stripification
+    with open(f'{name}-ibuf.txt', 'w') as f:
+        for face in triset.indices:
             #INVERTED WINDING ORDER
-            f.write('%d ' % face[2])
-            f.write('%d ' % face[1])
-            f.write('%d ' % face[0])
+            f.write(f'{face[2][0] + 1} ')
+            f.write(f'{face[1][0] + 1} ')
+            f.write(f'{face[0][0] + 1} ')
 
         f.write('-1')
+
+    #debug_write_obj(pos_set, normal_set, tex_set, color_set, vert_dict, triset)
+
+
+def debug_write_obj(pos_set, normal_set, tex_set, color_set, vert_dict, triset):
+    obj_string = ''
+
+    for p in range(0, len(pos_set)):
+        obj_string += f'v {pos_set[p][0]} {pos_set[p][1]} {pos_set[p][2]}\n'
+
+    for p in range(0, len(pos_set)):
+        obj_string += f'vt {tex_set[vert_dict[p][1]][0]} {tex_set[vert_dict[p][1]][1]}\n'
+
+    for p in range(0, len(pos_set)):
+        obj_string += f'vn {normal_set[vert_dict[p][0]][0]} {normal_set[vert_dict[p][0]][1]} {normal_set[vert_dict[p][0]][2]}\n'
+
+    for face in triset.indices:
+        v1 = face[0][0] + 1
+        v2 = face[1][0] + 1
+        v3 = face[2][0] + 1
+        obj_string += f'f {v1}/{v1}/{v1} {v2}/{v2}/{v2} {v3}/{v3}/{v3}\n'
+
+    with open('debug-obj.obj', 'w') as f:
+        f.write(obj_string)
+
 
 if __name__ == '__main__':
     main()

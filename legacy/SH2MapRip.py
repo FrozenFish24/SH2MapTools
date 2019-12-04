@@ -2,6 +2,12 @@ import os
 import struct
 import pdb
 
+import collada
+import numpy
+
+# TODO: Collada directly supports tri-strips, may remove some steps
+# TODO: Add the translation/scale values to the scene node?
+
 SCALE_VAL = 0.0060
 X_TRANS = 0.0
 Y_TRANS = 0.0
@@ -22,7 +28,6 @@ def main():
             total_index = 0
             for j in range(0, len(primList)):
                 total_index_backup = total_index
-                wavefrontObj = ''
                 currentPrimInfo = primList[j]
 
                 primTotal = 0
@@ -40,7 +45,7 @@ def main():
 
                 print(currentPrimInfo)
 
-                wavefrontObj += buildObj(i, j, vertList, faceList)
+                colladaMesh = buildCollada(i, j, vertList, faceList)
                 total_index += primTotal * currentPrimInfo[5]
 
                 #DEBUGGERY
@@ -49,7 +54,7 @@ def main():
                 print('Object %02d, Primitve %02d = 0x%X (Stride = %d) (IB = %d)' % (i,j, startOfVB + startOfObject, vbInfoList[currentPrimInfo[1]][1], total_index_backup))
                 #END DEBUG
 
-                writeObj('%s-dump\\%s_%02d_%02d.obj' % (map_name,map_name,i,j), wavefrontObj)    
+                writeCollada('%s-dump\\%s_%02d_%02d.dae' % (map_name,map_name,i,j), colladaMesh)
 
 def getObjectOffsets(f):
 
@@ -130,8 +135,13 @@ def ripObj(f, off):
         vertBufOffsets.append(f.tell())
         vert_buf_raw = f.read(vb[2])
         vbRawList.append(vert_buf_raw)
-        
+
+    ibOffset = f.tell()
     ibRaw = f.read(index_buf_sz)
+    #ibRaw = f.tell()
+    #f.read(index_buf_sz)
+
+    print(f'Index Buffer Offset = 0x{ibOffset:02X}, index Buffer Size = 0x{index_buf_sz:02X}')
 
     return vbRawList, vbInfoList, primList, ibRaw, vertBufOffsets
 
@@ -158,8 +168,12 @@ def extractVerts(vertBuf, stride, vertStarts, vertEnds):
     vertices = []
     for i in range(0, len(vertStarts)):
         for j in range(vertStarts[i] * stride, (vertEnds[i] + 1) * stride, stride):
-            formatString = '<' + 'f' * (stride // 4)
-            vertices.append(struct.unpack(formatString, vertBuf[j:j+stride]))
+            if(stride // 4 == 9):
+                # special case for vertices containing vertex color
+                vertices.append(struct.unpack('<ffffffIff', vertBuf[j:j+stride]))
+            else:
+                formatString = '<' + 'f' * (stride // 4)
+                vertices.append(struct.unpack(formatString, vertBuf[j:j+stride]))
 
     return vertices
 
@@ -184,36 +198,75 @@ def extractFaces(indexBuf, baseVertexIndex, primCount, skip, startIndex):
 
     return faceList
 
-def buildObj(objInd, primInd, vertList, faceList):
-    objString = f'# SCALE_VAL = {SCALE_VAL}\n' \
-                f'# X_TRANS = {X_TRANS}\n' \
-                f'# Y_TRANS = {Y_TRANS}\n' \
-                f'# Z_TRANS = {Z_TRANS}\n'
+def buildCollada(objInd, primInd, vertList, faceList):
 
-    objString += 'o Object_%02d_%02d\n' % (objInd, primInd)
+    vert_floats = []
+    normal_floats = []
+    texcoord_floats = []
+    color_floats = []
+
+    indices = []
 
     for vert in vertList:
-        objString += 'v %f %f %f\n' % ((vert[0] - X_TRANS) * SCALE_VAL, (vert[1] - Y_TRANS) * SCALE_VAL, (vert[2] - Z_TRANS) * SCALE_VAL)
-    for uv in vertList:
-        if(len(uv) == 5):
-            objString += 'vt %f %f\n' % (uv[3], 1.0 - uv[4])
-        if(len(uv) == 8):
-            objString += 'vt %f %f\n' % (uv[6], 1.0 - uv[7])
-        elif(len(uv) == 9):
-            objString += 'vt %f %f\n' % (uv[7], 1.0 - uv[8])
-    for norm in vertList:
-        if(len(norm) == 8):
-            objString += 'vn %f %f %f\n' % (norm[3], norm[4], norm[5])
-        elif(len(norm) == 9):
-            objString += 'vn %f %f %f\n' % (norm[3], norm[4], norm[5])
-    
+        vert_floats.extend([(vert[0] - X_TRANS) * SCALE_VAL, (vert[1] - Y_TRANS) * SCALE_VAL, (vert[2] - Z_TRANS) * SCALE_VAL])
+
+        if(len(vert) == 5):
+            texcoord_floats.extend([vert[3], 1.0 - vert[4]])
+        if(len(vert) == 8):
+            normal_floats.extend([vert[3], vert[4], vert[5]])
+            texcoord_floats.extend([vert[6], 1.0 - vert[7]])
+        elif(len(vert) == 9):
+            normal_floats.extend([vert[3], vert[4], vert[5]])
+
+            # convert vert colors from 0-255 to 0.0-1.0
+            r = (vert[6] & 0xFF) / 255.0
+            g = ((vert[6] >> 8) & 0xFF) / 255.0
+            b = ((vert[6] >> 16) & 0xFF) / 255.0
+            a = ((vert[6] >> 24) & 0xFF) / 255.0
+
+            color_floats.extend([r, g, b, a])
+            texcoord_floats.extend([vert[7], 1.0 - vert[8]])
+
     for face in faceList:
         if(face[0] != face[1] and face[0] != face[2] and face[1] != face[2]):
-            objString += 'f {0}/{0}/{0} {1}/{1}/{1} {2}/{2}/{2}\n'.format(face[0] + 1, face[1] + 1, face[2] + 1)
-        else:
-            objString += '#f {0}/{0}/{0} {1}/{1}/{1} {2}/{2}/{2} # degenerate\n'.format(face[0] + 1, face[1] + 1, face[2] + 1)
+            indices.extend([face[0], face[1], face[2]])
+        #else:
+        #    pass
+        #    objString += '#f {0}/{0}/{0} {1}/{1}/{1} {2}/{2}/{2} # degenerate\n'.format(face[0] + 1, face[1] + 1, face[2] + 1)
 
-    return objString
+    mesh = collada.Collada()
+
+    #effect = collada.material.Effect('effect0', [], 'phong', diffuse=(1,0,0), specular=(0,1,0))
+    #mat = collada.material.Material('material0', 'mymaterial', effect)
+    #mesh.effects.append(effect)
+    #mesh.materials.append(mat)
+
+    vert_src = collada.source.FloatSource('vertices', numpy.array(vert_floats), ('X', 'Y', 'Z'))
+    normal_src = collada.source.FloatSource('normals', numpy.array(normal_floats), ('X', 'Y', 'Z'))
+    color_src = collada.source.FloatSource('colors', numpy.array(color_floats), ('R', 'G', 'B', 'A'))
+    texcoord_src = collada.source.FloatSource('texcoords', numpy.array(texcoord_floats), ('S', 'T'))
+
+    geom = collada.geometry.Geometry(mesh, 'geometry', 'mesh', [vert_src, normal_src, color_src, texcoord_src])
+
+    input_list = collada.source.InputList()
+    input_list.addInput(0, 'VERTEX', '#vertices')
+    input_list.addInput(0, 'NORMAL', '#normals')
+    input_list.addInput(0, 'COLOR', '#colors')
+    input_list.addInput(0, 'TEXCOORD', '#texcoords')
+
+    triset = geom.createTriangleSet(numpy.array(indices), input_list, '')
+    geom.primitives.append(triset)
+    mesh.geometries.append(geom)
+
+    #matnode = collada.scene.MaterialNode('materialref', mat, inputs=[])
+    geomnode = collada.scene.GeometryNode(geom, [])
+    node = collada.scene.Node('mesh', children=[geomnode])
+
+    myscene = collada.scene.Scene('scene', [node])
+    mesh.scenes.append(myscene)
+    mesh.scene = myscene
+
+    return mesh
 
 def centerObj(boundingVolume):
 
@@ -232,7 +285,7 @@ def centerObj(boundingVolume):
     Y_TRANS = 0.0 #(maxY + minY) / 2
     Z_TRANS = (maxZ + minZ) / 2
 
-def writeObj(filename, objString):
+def writeCollada(filename, colladaMesh):
 
     if not os.path.exists(os.path.dirname(filename)):
         try:
@@ -241,8 +294,9 @@ def writeObj(filename, objString):
             if exc.errno != errno.EEXIST:
                 raise
     
-    with open(filename, 'w') as f:
-        f.write(objString)
+    #with open(filename, 'w') as f:
+    #    f.write(objString)
+    colladaMesh.write(filename)
 
 if __name__ == '__main__':
     main()

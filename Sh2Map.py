@@ -54,7 +54,7 @@ Vertex36 = Struct(
     'a' / Float32l,
     'b' / Float32l,
     'c' / Float32l,
-    'color' / Int32ul, # Vertex R8G8B8A8, alpha always 0xFF
+    'color' / Int32ul, # Vertex A8R8G8B8, alpha always 0xFF, used for static lighting on certain maps
     'u' / Float32l,
     'v' / Float32l
 )
