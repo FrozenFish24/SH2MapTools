@@ -30,15 +30,22 @@ def main():
         for v in t:
             vert_dict[v[0]] = (v[1], v[2], v[3])
     
-    print(f'Pos: {pos_set[0]}')
-    print(f'Normal: {normal_set[vert_dict[0][0]]}')
-    print(f'Tex: {tex_set[vert_dict[0][1]]}')
-    print(f'Color: {color_set[vert_dict[0][2]]}')
+    #print(f'Pos: {pos_set[0]}')
+    #print(f'Normal: {normal_set[vert_dict[0][0]]}')
+    #print(f'Tex: {tex_set[vert_dict[0][1]]}')
+    #print(f'Color: {color_set[vert_dict[0][2]]}')
 
     # Write out vertices
     with open('bars-in-place-out.bin', 'wb') as f:
         for i in range(0, len(pos_set)):
-            f.write(struct.pack('<6f', pos_set[i][0], pos_set[i][1], pos_set[i][2], normal_set[vert_dict[i][0]][0], normal_set[vert_dict[i][0]][1], normal_set[vert_dict[i][0]][2]))
+            x = (pos_set[i][0] / SCALE_VAL) + X_TRANS
+            y = (pos_set[i][1] / SCALE_VAL) + Y_TRANS
+            z = (pos_set[i][2] / SCALE_VAL) + Z_TRANS
+
+            a = normal_set[vert_dict[i][0]][0]
+            b = normal_set[vert_dict[i][0]][1]
+            c = normal_set[vert_dict[i][0]][2]
+            f.write(struct.pack('<6f', x, y, z, a, b, c))
 
             if vert_mode == 36:
                 r = int(color_set[vert_dict[0][2]][0] * 255)
@@ -46,7 +53,9 @@ def main():
                 b = int(color_set[vert_dict[0][2]][2] * 255)
                 f.write(struct.pack('<BBBB', r, g, b, 255))
 
-            f.write(struct.pack('<2f', tex_set[vert_dict[i][1]][0], tex_set[vert_dict[i][1]][1]))
+            u = tex_set[vert_dict[i][1]][0]
+            v = 1.0 - tex_set[vert_dict[i][1]][1]
+            f.write(struct.pack('<2f', u, v))
 
     # Write out index buffer for stripification
     with open(f'{name}-ibuf.txt', 'w') as f:
