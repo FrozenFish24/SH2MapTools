@@ -5,6 +5,8 @@ import struct
 import collada
 import numpy
 
+from pyffi.utils import tristrip
+
 SCALE_VAL = 0.0060
 X_TRANS = 0.0
 Y_TRANS = 0.0
@@ -36,7 +38,7 @@ def main():
     #print(f'Color: {color_set[vert_dict[0][2]]}')
 
     # Write out vertices
-    with open('bars-in-place-out.bin', 'wb') as f:
+    with open(f'{name}-out.bin', 'wb') as f:
         for i in range(0, len(pos_set)):
             x = (pos_set[i][0] / SCALE_VAL) + X_TRANS
             y = (pos_set[i][1] / SCALE_VAL) + Y_TRANS
@@ -58,16 +60,32 @@ def main():
             f.write(struct.pack('<2f', u, v))
 
     # Write out index buffer for stripification
+    #with open(f'{name}-ibuf.txt', 'w') as f:
+    #    for face in triset.indices:
+    #        #INVERTED WINDING ORDER
+    #        f.write(f'{face[2][0]} ')
+    #        f.write(f'{face[1][0]} ')
+    #        f.write(f'{face[0][0]} ')
+    #
+    #    f.write('-1')
+
+    # Stripify index buffer
+    trilist = []
+    for face in triset.indices:
+        #INVERTED WINDING ORDER
+        trilist.append((int(face[2][0]), int(face[1][0]), int(face[0][0])))
+    stripped = tristrip.stripify(trilist, True)[0]
+    print(len(stripped))
+
     with open(f'{name}-ibuf.txt', 'w') as f:
-        for face in triset.indices:
-            #INVERTED WINDING ORDER
-            f.write(f'{face[2][0] + 1} ')
-            f.write(f'{face[1][0] + 1} ')
-            f.write(f'{face[0][0] + 1} ')
+        f.write('1\n')
+        f.write('1\n')
+        f.write(f'{len(stripped)}\n')
+        for i in stripped:
+            f.write(f'{i} ')
+        f.write('\n')
 
-        f.write('-1')
-
-    #debug_write_obj(pos_set, normal_set, tex_set, color_set, vert_dict, triset)
+    debug_write_obj(pos_set, normal_set, tex_set, color_set, vert_dict, triset)
 
 
 def debug_write_obj(pos_set, normal_set, tex_set, color_set, vert_dict, triset):
