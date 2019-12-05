@@ -1,12 +1,12 @@
 import os
 import struct
 import pdb
+import errno
 
 import collada
 import numpy
 
 # TODO: Collada directly supports tri-strips, may remove some steps
-# TODO: Add the translation/scale values to the scene node?
 
 SCALE_VAL = 0.0060
 X_TRANS = 0.0
@@ -21,7 +21,7 @@ def main():
     with open('%s.map' % map_name, 'rb') as f:
         objOffsetList = getObjectOffsets(f)
 
-        print('Object Count: %d' % len(objOffsetList))
+        print(f'Object Count: {len(objOffsetList)}\n')
         for i in range(0, len(objOffsetList)):
             vbRawList, vbInfoList, primList, ibRaw, vertBufOffsets = ripObj(f, objOffsetList[i])
 
@@ -208,7 +208,7 @@ def buildCollada(objInd, primInd, vertList, faceList):
     indices = []
 
     for vert in vertList:
-        vert_floats.extend([(vert[0] - X_TRANS) * SCALE_VAL, (vert[1] - Y_TRANS) * SCALE_VAL, (vert[2] - Z_TRANS) * SCALE_VAL])
+        vert_floats.extend([vert[0], vert[1], vert[2]])
 
         if(len(vert) == 5):
             texcoord_floats.extend([vert[3], 1.0 - vert[4]])
@@ -258,9 +258,12 @@ def buildCollada(objInd, primInd, vertList, faceList):
     geom.primitives.append(triset)
     mesh.geometries.append(geom)
 
+    translate_transform = collada.scene.TranslateTransform(-X_TRANS * SCALE_VAL, -Y_TRANS * SCALE_VAL, -Z_TRANS * SCALE_VAL)
+    scale_transform = collada.scene.ScaleTransform(SCALE_VAL, SCALE_VAL, SCALE_VAL)
+
     #matnode = collada.scene.MaterialNode('materialref', mat, inputs=[])
     geomnode = collada.scene.GeometryNode(geom, [])
-    node = collada.scene.Node('mesh', children=[geomnode])
+    node = collada.scene.Node('mesh', children=[geomnode], transforms=[translate_transform, scale_transform])
 
     myscene = collada.scene.Scene('scene', [node])
     mesh.scenes.append(myscene)

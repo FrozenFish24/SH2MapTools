@@ -7,11 +7,6 @@ import numpy
 
 from pyffi.utils import tristrip
 
-SCALE_VAL = 0.0060
-X_TRANS = 0.0
-Y_TRANS = 0.0
-Z_TRANS = 0.0
-
 name = 'bars-cleaned-up'
 vert_mode = 36
 
@@ -40,9 +35,9 @@ def main():
     # Write vertices to file
     with open(f'{name}-out.bin', 'wb') as f:
         for i in range(0, len(pos_set)):
-            x = (pos_set[i][0] / SCALE_VAL) + X_TRANS
-            y = (pos_set[i][1] / SCALE_VAL) + Y_TRANS
-            z = (pos_set[i][2] / SCALE_VAL) + Z_TRANS
+            x = pos_set[i][0]
+            y = pos_set[i][1]
+            z = pos_set[i][2]
 
             a = normal_set[vert_dict[i][0]][0]
             b = normal_set[vert_dict[i][0]][1]
@@ -75,7 +70,7 @@ def main():
             f.write(f'{i} ')
         f.write('\n')
 
-    debug_write_obj(pos_set, normal_set, tex_set, color_set, vert_dict, triset)
+    #debug_write_obj(pos_set, normal_set, tex_set, color_set, vert_dict, triset)
 
 
 def debug_write_obj(pos_set, normal_set, tex_set, color_set, vert_dict, triset):
