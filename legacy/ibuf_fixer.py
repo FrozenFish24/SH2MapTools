@@ -10,47 +10,47 @@ def main():
     with open(ORIGINAL_BUFFER, 'rb') as f:
         ibuf = f.read()
 
-    indexBuffer = []
+    index_buffer = []
     for i in range(0, len(ibuf), 2):
-        indexBuffer.append(struct.unpack('<H', ibuf[i:i+2])[0])
+        index_buffer.append(struct.unpack('<H', ibuf[i:i+2])[0])
     
     with open(STRIPPED_BUFFER, 'r') as f:
         lines = f.readlines()
 
-    primType = lines[0]
-    primCount = lines[1]
-    indexCount = lines[2]
+    prim_type = lines[0]
+    prim_count = lines[1]
+    index_count = lines[2]
     indices = lines[3]
 
     indices = indices.split(' ')
     if(indices[-1] == '\n'):
         indices = indices[:-1] # Remove newline
 
-    ibBefore = indexBuffer[:INSERT_INDEX]
-    ibAfter = indexBuffer[INSERT_INDEX:]
+    ib_head = index_buffer[:INSERT_INDEX]
+    ib_tail = index_buffer[INSERT_INDEX:]
 
-    indexMod = 0
-    for i in ibBefore:
-        if(int(i) > indexMod):
-            indexMod = int(i)
-    print(indexMod)
+    index_mod = 0
+    for i in ib_head:
+        if(int(i) > index_mod):
+            index_mod = int(i)
+    print(index_mod)
 
-    indexMod += 1
+    index_mod += 1
 
     out = B''
-    for i in ibBefore:
+    for i in ib_head:
         out += struct.pack('<H', int(i))
 
-    out += struct.pack('<H', int(ibBefore[-1]))
-    out += struct.pack('<H', int(indices[0]) + indexMod)
+    out += struct.pack('<H', int(ib_head[-1]))
+    out += struct.pack('<H', int(indices[0]) + index_mod)
 
     for i in indices:
-        out += struct.pack('<H', int(i) + indexMod)
+        out += struct.pack('<H', int(i) + index_mod)
 
     #out += struct.pack('<H', int(indices[-1]) + INSERT_INDEX)
     #out += struct.pack('<H', int(ibAfter[0]) + len(indices))
         
-    for i in ibAfter:
+    for i in ib_tail:
         out += struct.pack('<H', int(i) + VERTS_ADDED)
 
     with open('IndexBuffer.bin', 'wb') as f:
