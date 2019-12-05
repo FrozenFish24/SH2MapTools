@@ -5,28 +5,35 @@ import errno
 import collada
 import numpy
 
-# TODO: Collada directly supports tri-strips, may remove some steps
+import common
+
+# TODO: OOP-ify parsing code
+# TODO: Collada directly supports tri-strips, may remove some complexity
 
 SCALE_X = 0.0060
 SCALE_Y = -0.0060
 SCALE_Z = -0.0060
 
-X_TRANS = 0.0
-Y_TRANS = 0.0
-Z_TRANS = 0.0
-CENTERED = False
+x_trans = 0.0
+y_trans = 0.0
+z_trans = 0.0
+centered = False
 
-#DEBUG VARS
+# DEBUG VARS
 map_name = 'ps85'
 
 def main():
     with open('%s.map' % map_name, 'rb') as f:
+        objects = common.get_objects(f)
+        for ob in objects:
+            ob.pretty_print()
+        print()
 
-        object_offsets = get_object_offsets(f)
-        print(f'Object Count: {len(object_offsets)}\n')
+        # Hack: Remove Object 03 to avoid crash
+        objects.remove(objects[2])
 
-        for i in range(0, len(object_offsets)):
-            vb_raw_list, vb_info_list, primitive_list, ib_raw, vb_offsets = rip_object(f, object_offsets[i])
+        for i in range(0, len(objects)):
+            vb_raw_list, vb_info_list, primitive_list, ib_raw, vb_offsets = rip_object(f, objects[i].get_offset())
 
             total_index = 0
             for j in range(0, len(primitive_list)):
@@ -51,46 +58,13 @@ def main():
                 collada_mesh = build_collada(i, j, vert_list, face_list)
                 total_index += prim_total * current_prim_info[5]
 
-                #DEBUGGERY
+                # DEBUGGERY
                 start_of_vb = vb_offsets[current_prim_info[1]]
                 start_of_object = current_prim_info[6] * vb_info_list[current_prim_info[1]][1]
                 print('Object {:02d}, Primitve {:02d} = 0x{:X} (Stride = {}) (IB = {})'.format(i,j, start_of_vb + start_of_object, vb_info_list[current_prim_info[1]][1], total_index_backup))
-                #END DEBUG
+                # END DEBUG
 
                 write_collada(f'{map_name}-dump\\{map_name}_{i:02d}_{j:02d}.dae', collada_mesh)
-
-def get_object_offsets(f):
-
-        #return [0x1c06e0, 0x1CA5F0, 0x1d4dd0]
-
-        object_offsets = []
-
-        f.read(0x14) #ignore irrelevant data for now
-        tex_section_len = f.read(4)
-        tex_section_len = struct.unpack('<I', tex_section_len)[0]
-        f.read(8)
-        f.seek(tex_section_len, 1)
-
-        f.read(0x14) # discard geom section header and creation date
-        object_count = f.read(4)
-        object_count = struct.unpack('<I', object_count)[0]
-        f.read(8)
-
-        while(object_count > 0):
-
-            print(f'START = 0x{f.tell():x}')
-
-            object_start = f.tell()
-            f.read(4)
-            object_size = f.read(4)
-            object_size = struct.unpack('<I', object_size)[0]
-
-            object_offsets.append(object_start)
-            
-            f.seek(object_start + object_size)
-            object_count -= 1
-
-        return object_offsets
 
 def rip_object(f, off):
     
@@ -105,10 +79,10 @@ def rip_object(f, off):
     bounding_volume = f.read(bounding_volume_len * 4) # ignore occlusion culling volume
     bounding_volume = struct.unpack('<8f', bounding_volume)
 
-    global CENTERED
-    if CENTERED is False:
+    global centered
+    if centered is False:
         find_scene_center(bounding_volume)
-        CENTERED = True
+        centered = True
 
     f.read(4) # ignore whatever this is
 
@@ -118,9 +92,9 @@ def rip_object(f, off):
     index_buf_len = f.read(4)
     index_buf_len = struct.unpack('<I', index_buf_len)[0]
 
-    f.read(4) #discard irrelevant size field
+    f.read(4) # discard irrelevant size field
 
-    primitive_list = get_primitives(f)
+    primitive_list = common.get_primitives(f)
 
     f.read(4) # discard a size field
 
@@ -147,24 +121,6 @@ def rip_object(f, off):
     print(f'Index Buffer Offset = 0x{ib_offset:02X}, index Buffer Size = 0x{index_buf_len:02X}')
 
     return vb_raw_list, vb_info_list, primitive_list, ib_raw, vb_offsets
-
-def get_primitives(f):
-    obj_count = f.read(4)
-    obj_count = struct.unpack('<I', obj_count)[0]
-    
-    primitive_list = []
-    for _o in range(0, obj_count):
-        info = f.read(20)
-        info = struct.unpack('<IIIHBBHH', info)
-
-        if(info[2] == 2):
-            extra_fields = f.read(8)
-            extra_fields = struct.unpack('<HBBHH', extra_fields)
-            info = info + extra_fields
-
-        primitive_list.append(info)
-        
-    return primitive_list
 
 def extract_verts(vert_buf, stride, vert_starts, vert_ends):
     vertices = []
@@ -252,7 +208,7 @@ def build_collada(obj_ind, prim_ind, vert_list, face_list):
     geom.primitives.append(triset)
     mesh.geometries.append(geom)
 
-    translate_transform = collada.scene.TranslateTransform(-X_TRANS * SCALE_X, -Y_TRANS * SCALE_Y, -Z_TRANS * SCALE_Z)
+    translate_transform = collada.scene.TranslateTransform(-x_trans * SCALE_X, -y_trans * SCALE_Y, -z_trans * SCALE_Z)
     scale_transform = collada.scene.ScaleTransform(SCALE_X, SCALE_Y, SCALE_Z)
 
     geomnode = collada.scene.GeometryNode(geom, [])
@@ -266,9 +222,9 @@ def build_collada(obj_ind, prim_ind, vert_list, face_list):
 
 def find_scene_center(boundingVolume):
 
-    global X_TRANS
-    global Y_TRANS
-    global Z_TRANS
+    global x_trans
+    global y_trans
+    global z_trans
 
     min_x = boundingVolume[0]
     max_x = boundingVolume[4]
@@ -277,9 +233,9 @@ def find_scene_center(boundingVolume):
     min_z = boundingVolume[2]
     max_z = boundingVolume[6]
 
-    X_TRANS = (max_x + min_x) / 2
-    Y_TRANS = (max_y + min_y) / 2
-    Z_TRANS = (max_z + min_z) / 2
+    x_trans = (max_x + min_x) / 2
+    y_trans = (max_y + min_y) / 2
+    z_trans = (max_z + min_z) / 2
 
 def write_collada(filename, collada_mesh):
 
