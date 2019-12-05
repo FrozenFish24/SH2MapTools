@@ -8,7 +8,10 @@ import numpy
 
 # TODO: Collada directly supports tri-strips, may remove some steps
 
-SCALE_VAL = 0.0060
+SCALE_X = 0.0060
+SCALE_Y = -0.0060
+SCALE_Z = -0.0060
+
 X_TRANS = 0.0
 Y_TRANS = 0.0
 Z_TRANS = 0.0
@@ -258,8 +261,8 @@ def buildCollada(objInd, primInd, vertList, faceList):
     geom.primitives.append(triset)
     mesh.geometries.append(geom)
 
-    translate_transform = collada.scene.TranslateTransform(-X_TRANS * SCALE_VAL, -Y_TRANS * SCALE_VAL, -Z_TRANS * SCALE_VAL)
-    scale_transform = collada.scene.ScaleTransform(SCALE_VAL, SCALE_VAL, SCALE_VAL)
+    translate_transform = collada.scene.TranslateTransform(-X_TRANS * SCALE_X, -Y_TRANS * SCALE_Y, -Z_TRANS * SCALE_Z)
+    scale_transform = collada.scene.ScaleTransform(SCALE_X, SCALE_Y, SCALE_Z)
 
     #matnode = collada.scene.MaterialNode('materialref', mat, inputs=[])
     geomnode = collada.scene.GeometryNode(geom, [])
@@ -285,7 +288,7 @@ def centerObj(boundingVolume):
     maxZ = boundingVolume[6]
 
     X_TRANS = (maxX + minX) / 2
-    Y_TRANS = 0.0 #(maxY + minY) / 2
+    Y_TRANS = (maxY + minY) / 2
     Z_TRANS = (maxZ + minZ) / 2
 
 def writeCollada(filename, colladaMesh):
