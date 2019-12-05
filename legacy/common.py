@@ -82,45 +82,99 @@ class Sh2ObjectGroup:
         self.unk = OffsetValuePair(0, 0)
         self.len_object_group = OffsetValuePair(0, 0)
         self.prim_count = OffsetValuePair(0, 0)
-        self.unk_size = OffsetValuePair(0, 0)
+        self.len_unk = OffsetValuePair(0, 0)
         self.object = OffsetValuePair(0, Sh2Object())
 
     def get_offset(self):
         return self.unk.offset
 
     def pretty_print(self):
-        print('{')
+        print('Sh2ObjectGroup() =\n{')
         print('\tunk = (0x{:X}, {})'.format(self.unk.offset, self.unk.value))
-        print('\tlen_object_group = (0x{:X}, {})'.format(self.len_object_group.offset, self.len_object_group.value))
+        print('\tlen_object_group = (0x{:X}, 0x{:X})'.format(self.len_object_group.offset, self.len_object_group.value))
         print('\tprim_count = (0x{:X}, {})'.format(self.prim_count.offset, self.prim_count.value))
-        print('\tunk_size = (0x{:X}, {})'.format(self.unk_size.offset, self.unk_size.value))
+        print('\tlen_unk = (0x{:X}, 0x{:X})'.format(self.len_unk.offset, self.len_unk.value))
+        print('\tobject = (0x{:X}, {})'.format(self.object.offset, self.object.value))
+        print('}')
+
+class Sh2GeometrySubSection:
+    def __init__(self):
+        self.time_stamp = OffsetValuePair(0, 0)
+        self.object_group_count = OffsetValuePair(0, 0)
+        self.len_geometry_sub_section = OffsetValuePair(0, 0)
+        self.unk0 = OffsetValuePair(0, 0)
+        self.object_group = OffsetValuePair(0, Sh2ObjectGroup())
+
+    def get_offset(self):
+        return self.time_stamp.offset
+
+    def pretty_print(self):
+        print('Sh2GeometrySubSection() =\n{')
+        print('\ttime_stamp = (0x{:X}, {})'.format(self.time_stamp.offset, self.time_stamp.value))
+        print('\tobject_group_count = (0x{:X}, {})'.format(self.object_group_count.offset, self.object_group_count.value))
+        print('\tlen_geometry_sub_section = (0x{:X}, 0x{:X})'.format(self.len_geometry_sub_section.offset, self.len_geometry_sub_section.value))
+        print('\tunk0 = (0x{:X}, {})'.format(self.unk0.offset, self.unk0.value))
+        print('\tobject_group = (0x{:X}, {})'.format(self.object_group.offset, self.object_group.value))
+        print('}')
+
+class Sh2GeometrySection:
+    def __init__(self):
+        self.section_index = OffsetValuePair(0, 0)
+        self.len_data = OffsetValuePair(0, 0)
+        self.unk0 = OffsetValuePair(0, 0)
+        self.geometry_sub_section = OffsetValuePair(0, Sh2GeometrySubSection())
+        self.materials = OffsetValuePair(0, 0)
+
+    def get_offset(self):
+        return self.section_index.offset
+
+    def pretty_print(self):
+        print('Sh2GeometrySection() =\n{')
+        print('\tsection_index = (0x{:X}, {})'.format(self.section_index.offset, self.section_index.value))
+        print('\tlen_data = (0x{:X}, 0x{:X})'.format(self.len_data.offset, self.len_data.value))
+        print('\tunk0 = (0x{:X}, {})'.format(self.unk0.offset, self.unk0.value))
+        print('\tgeometry_sub_section = (0x{:X}, {})'.format(self.geometry_sub_section.offset, self.geometry_sub_section.value))
+        print('\tmaterials = (0x{:X}, {})'.format(self.materials.offset, self.materials.value))
         print('}')
 
 def get_objects(f):
 
         objects = []
 
+        # TODO: Make this an Sh2Map object
         f.read(0x14) # ignore irrelevant data for now
         tex_section_len = f.read(4)
         tex_section_len = struct.unpack('<I', tex_section_len)[0]
         f.read(8)
         f.seek(tex_section_len, 1)
 
-        f.read(0x14) # discard geom section header and creation date
-        object_count = f.read(4)
-        object_count = struct.unpack('<I', object_count)[0]
-        f.read(8)
+        sh2gs = Sh2GeometrySection()
+        sh2gs.section_index = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
+        sh2gs.len_data = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
+        sh2gs.unk0 = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
+        sh2gs.unk1 = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
 
+        sh2gs.pretty_print()
+
+        sub_section = sh2gs.geometry_sub_section.value
+        sub_section.time_stamp = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
+        sub_section.object_group_count = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
+        sub_section.len_geometry_sub_section = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
+        sub_section.unk0 = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
+
+        sub_section.pretty_print()
+
+        object_count = sub_section.object_group_count.value
         while(object_count > 0):
             og = Sh2ObjectGroup()
             og.unk = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
             og.len_object_group = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
             og.prim_count = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
-            og.unk_size = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
+            og.len_unk = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
 
             objects.append(og)
 
-            f.seek(og.unk.offset + og.len_object_group.value)
+            f.seek(og.get_offset() + og.len_object_group.value)
             object_count -= 1
 
         return objects

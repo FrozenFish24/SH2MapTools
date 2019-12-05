@@ -97,15 +97,15 @@ ObjectGroup = Struct(
     'unk0' / Int32ul, # Object group index maybe?
     'len_object_group' / Int32ul,
     'prim_count' / Int32ul, # 0 to this value inclusive (NOT SURE)
-    'unk_size' / Int32ul, # Only non-zero in MAPs that stream in chunks, size includes vertex buffer and index buffer
+    'len_unk' / Int32ul, # Only non-zero in MAPs that stream in chunks, size includes vertex buffer and index buffer
     'object' / Object
 )
 
 GeometrySubSection = Struct(
-    'creation_date' / Int32ul,
-    'unk0' / Int32ul,
+    'time_stamp' / Int32ul,
+    'object_group_count' / Int32ul,
     'len_geometry_sub_section' / Int32ul,
-    'prim_count' / Int32ul, # 0 to this value inclusive
+    'unk0' / Int32ul,
     'object_group' / ObjectGroup
 )
 
@@ -119,7 +119,7 @@ GeometrySection = Struct(
 )
 
 Sh2Map = Struct(
-    'creation_date' / Int32ul,
+    'time_stamp' / Int32ul,
     'len_map' / Int32ul,
     'num_sections' / Int32ul,
     'unk' / Int32ul,
