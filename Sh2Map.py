@@ -84,7 +84,8 @@ VertexBuffers = Struct(
 )
 
 Object = Struct(
-    'len_object' / Int32ul,
+    'unk0' / Int32ul,
+    'unk1' / Int32ul, # was called 'len_object'
     'num_bounding_volumes' / Int32ul,
     'bounding_volumes' / Array(this.num_bounding_volumes, BoundingVolume),
     #'prim_list' / PrimitiveList,
@@ -96,17 +97,17 @@ Object = Struct(
 ObjectGroup = Struct(
     'unk0' / Int32ul, # Object group index maybe?
     'len_object_group' / Int32ul,
-    'prim_count' / Int32ul, # 0 to this value inclusive (NOT SURE)
+    'unk1' / Int32ul,
     'len_unk' / Int32ul, # Only non-zero in MAPs that stream in chunks, size includes vertex buffer and index buffer
     'object' / Object
 )
 
 GeometrySubSection = Struct(
-    'time_stamp' / Int32ul,
+    'time_stamp' / Int32ul, # Very likely wrong
     'object_group_count' / Int32ul,
     'len_geometry_sub_section' / Int32ul,
     'unk0' / Int32ul,
-    'object_group' / ObjectGroup
+    'object_groups' / Array(this.object_group_count, ObjectGroup)
 )
 
 GeometrySection = Struct(
@@ -119,7 +120,7 @@ GeometrySection = Struct(
 )
 
 Sh2Map = Struct(
-    'time_stamp' / Int32ul,
+    'time_stamp' / Int32ul, # Very likely wrong
     'len_map' / Int32ul,
     'num_sections' / Int32ul,
     'unk' / Int32ul,
