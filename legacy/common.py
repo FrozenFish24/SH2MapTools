@@ -1,52 +1,117 @@
 import struct
 
+DEBUG = False
+
+# TODO: look into less verbose ways to print objects
+# TODO: work out how to gracefully skip corrupt sections
+
 class OffsetValuePair:
     def __init__(self, offset, value):
         self.offset = offset
         self.value = value
 
+    def to_string(self, value_as_hex=False):
+        if value_as_hex:
+            return '(0x{:X}, 0x{:X})'.format(self.offset, self.value)
+        else:
+            return '(0x{:X}, {})'.format(self.offset, self.value)
+
 class Sh2SubPrimInfo:
-    def __init__(self):
-        self.num_prims = OffsetValuePair(0, 0)
-        self.unk = OffsetValuePair(0, 0)
-        self.prim_size = OffsetValuePair(0, 0)
-        self.vert_start = OffsetValuePair(0, 0)
-        self.vert_end = OffsetValuePair(0, 0)
+    def __init__(self, f):
+        self.num_prims = OffsetValuePair(f.tell(), struct.unpack('<H', f.read(2))[0])
+        self.unk = OffsetValuePair(f.tell(), struct.unpack('<B', f.read(1))[0])
+        self.prim_len = OffsetValuePair(f.tell(), struct.unpack('<B', f.read(1))[0])
+        self.vert_start = OffsetValuePair(f.tell(), struct.unpack('<H', f.read(2))[0])
+        self.vert_end = OffsetValuePair(f.tell(), struct.unpack('<H', f.read(2))[0])
+
+        if DEBUG:
+            try:
+                self.pretty_print()
+            except:
+                pass
 
     def get_offset(self):
         return self.num_prims.offset
 
+    def pretty_print(self):
+        print('Sh2SubPrimInfo() =\n{')
+        print(f'\tnum_prims = {self.num_prims.to_string()}')
+        print(f'\tunk = {self.unk.to_string()}')
+        print(f'\tprim_len = {self.prim_len.to_string(True)}')
+        print(f'\tvert_start = {self.vert_start.to_string()}')
+        print(f'\tvert_end = {self.vert_end.to_string()}')
+        print('}')
+
+    def recursive_print(self):
+        self.pretty_print()
+
 class Sh2PrimitiveInfo:
-    def __init__(self):
-        self.material_index = OffsetValuePair(0, 0)
-        self.vertex_buffer_index = OffsetValuePair(0, 0)
-        self.num_sub_prims = OffsetValuePair(0, 0)
-        self.sub_prims = OffsetValuePair(0, Sh2SubPrimInfo())
+    def __init__(self, f):
+        self.material_index = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
+        self.vertex_buffer_index = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
+        self.num_sub_prims = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
+
+        if DEBUG:
+            try:
+                self.pretty_print()
+            except:
+                pass
+
+        self.sub_prims = []
+        for _i in range(0, self.num_sub_prims.value):
+            self.sub_prims.append(OffsetValuePair(0, Sh2SubPrimInfo(f)))
 
     def get_offset(self):
         return self.material_index.offset
 
+    def pretty_print(self):
+        print('Sh2PrimitiveInfo() =\n{')
+        print(f'\tmaterial_index = {self.material_index.to_string()}')
+        print(f'\tvertex_buffer_index = {self.vertex_buffer_index.to_string()}')
+        print(f'\tnum_sub_prims = {self.num_sub_prims.to_string()}')
+        print(f'\tsub_prims = {self.sub_prims}')
+        print('}')
+
+    def recursive_print(self):
+        self.pretty_print()
+        for sp in self.sub_prims:
+            sp.value.recursive_print()
+
 class Sh2PrimitiveList:
-    def __init__(self):
-        self.len_primitive_list = OffsetValuePair(0, 0)
-        self.ofs_index_buffer = OffsetValuePair(0, 0)
-        self.len_index_buffer = OffsetValuePair(0, 0)
-        self.len_unk = OffsetValuePair(0, 0)
-        self.num_prims = OffsetValuePair(0, 0)
-        self.prim_info = OffsetValuePair(0, Sh2PrimitiveInfo())
+    def __init__(self, f):
+        self.len_primitive_list = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
+        self.ofs_index_buffer = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
+        self.len_index_buffer = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
+        self.len_unk = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
+        self.num_prims = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
+
+        if DEBUG:
+            try:
+                self.pretty_print()
+            except:
+                pass
+
+        self.prim_info = []
+        for _i in range(0, self.num_prims.value):
+            self.prim_info.append(OffsetValuePair(0, Sh2PrimitiveInfo(f)))
 
     def get_offset(self):
         return self.len_primitive_list.offset
 
     def pretty_print(self):
         print('Sh2PrimitiveList() =\n{')
-        print('\tlen_primitive_list = (0x{:X}, 0x{:X})'.format(self.len_primitive_list.offset, self.len_primitive_list.value))
-        print('\tofs_index_buffer = (0x{:X}, 0x{:X})'.format(self.ofs_index_buffer.offset, self.ofs_index_buffer.value))
-        print('\tlen_index_buffer = (0x{:X}, 0x{:X})'.format(self.len_index_buffer.offset, self.len_index_buffer.value))
-        print('\tlen_unk = (0x{:X}, 0x{:X})'.format(self.len_unk.offset, self.len_unk.value))
-        print('\tnum_prims = (0x{:X}, {})'.format(self.num_prims.offset, self.num_prims.value))
-        print('\tprim_info = (0x{:X}, {})'.format(self.prim_info.offset, self.prim_info.value))
+        print(f'\tlen_primitive_list = {self.len_primitive_list.to_string(True)}')
+        print(f'\tofs_index_buffer = {self.ofs_index_buffer.to_string(True)}')
+        print(f'\tlen_index_buffer = {self.len_index_buffer.to_string(True)}')
+        print(f'\tlen_unk = {self.len_unk.to_string(True)}')
+        print(f'\tnum_prims = {self.num_prims.to_string()}')
+        print(f'\tprim_info = {self.prim_info}')
         print('}')
+
+    def recursive_print(self):
+        self.pretty_print()
+        for pi in self.prim_info:
+            pi.value.recursive_print()
 
 class Sh2VertexBufferInfo:
     def __init__(self):
@@ -76,88 +141,152 @@ class Sh2BoundingVolume:
         return self.len_bounding_volume.offset
 
 class Sh2Object:
-    def __init__(self):
-        self.unk0 = OffsetValuePair(0, 0)
-        self.unk1 = OffsetValuePair(0, 0)
-        self.num_bounding_volumes = OffsetValuePair(0, 0)
-        self.bounding_volumes = OffsetValuePair(0, Sh2BoundingVolume())
-        self.prim_list = OffsetValuePair(0, Sh2PrimitiveList())
-        self.vertex_buffers = OffsetValuePair(0, Sh2VertexBuffer())
-        self.index_buffer = OffsetValuePair(0, [])
+    def __init__(self, f):
+        self.unk0 = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
+        self.unk1 = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
+        self.num_bounding_volumes = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
+
+        # TODO: Actually parse bounding vols
+        self.bounding_volumes = OffsetValuePair(0, 0)
+        f.read(self.num_bounding_volumes.value * 4)
+
+        if DEBUG:
+            try:
+                self.pretty_print()
+            except:
+                pass
+
+        self.prim_list = OffsetValuePair(f.tell(), Sh2PrimitiveList(f))
+
+        # TODO: Keep parsing
+        self.vertex_buffers = OffsetValuePair(0, 0)
+        self.index_buffer = OffsetValuePair(0, 0)
 
     def get_offset(self):
         return self.unk0.offset
 
     def pretty_print(self):
         print('Sh2Object() =\n{')
-        print('\tunk0 = (0x{:X}, {})'.format(self.unk0.offset, self.unk0.value))
-        print('\tunk1 = (0x{:X}, {})'.format(self.unk1.offset, self.unk1.value))
-        print('\tnum_bounding_volumes = (0x{:X}, {})'.format(self.num_bounding_volumes.offset, self.num_bounding_volumes.value))
-        print('\tbounding_volumes = (0x{:X}, {})'.format(self.bounding_volumes.offset, self.bounding_volumes.value))
-        print('\tprim_list = (0x{:X}, {})'.format(self.prim_list.offset, self.prim_list.value))
-        print('\tvertex_buffers = (0x{:X}, {})'.format(self.vertex_buffers.offset, self.vertex_buffers.value))
-        print('\tindex_buffer = (0x{:X}, {})'.format(self.index_buffer.offset, self.index_buffer.value))
+        print(f'\tunk0 = {self.unk0.to_string()}')
+        print(f'\tunk1 = {self.unk1.to_string()}')
+        print(f'\tnum_bounding_volumes = {self.num_bounding_volumes.to_string()}')
+        print(f'\tbounding_volumes = {self.bounding_volumes.to_string()}')
+        print(f'\tprim_list = {self.prim_list.to_string()}')
+        print(f'\tvertex_buffers = {self.vertex_buffers.to_string()}')
+        print(f'\tindex_buffer = {self.index_buffer.to_string()}')
         print('}')
 
+    def recursive_print(self):
+        self.pretty_print()
+        self.prim_list.value.recursive_print()
+
 class Sh2ObjectGroup:
-    def __init__(self):
-        self.unk0 = OffsetValuePair(0, 0)
-        self.len_object_group = OffsetValuePair(0, 0)
-        self.unk1 = OffsetValuePair(0, 0)
-        self.len_unk = OffsetValuePair(0, 0)
-        self.object = OffsetValuePair(0, Sh2Object())
+    def __init__(self, f):
+        self.unk0 = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
+        self.len_object_group = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
+        self.unk1 = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
+        self.len_unk = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
+        self.object = None
+
+        if DEBUG:
+            try:
+                self.pretty_print()
+            except:
+                pass
+
+        # Hack: Skip broken ObjectGroup
+        if(self.get_offset() == 0x1D49C0):
+            f.seek(self.get_offset() + self.len_object_group.value)
+            return
+
+        self.object = OffsetValuePair(f.tell(), Sh2Object(f))
+
+        f.seek(self.get_offset() + self.len_object_group.value) # Can hopefully go once parsing works
 
     def get_offset(self):
         return self.unk0.offset
 
     def pretty_print(self):
         print('Sh2ObjectGroup() =\n{')
-        print('\tunk0 = (0x{:X}, {})'.format(self.unk0.offset, self.unk0.value))
-        print('\tlen_object_group = (0x{:X}, 0x{:X})'.format(self.len_object_group.offset, self.len_object_group.value))
-        print('\tunk1 = (0x{:X}, {})'.format(self.unk1.offset, self.unk1.value))
-        print('\tlen_unk = (0x{:X}, 0x{:X})'.format(self.len_unk.offset, self.len_unk.value))
-        print('\tobject = (0x{:X}, {})'.format(self.object.offset, self.object.value))
+        print(f'\tunk0 = {self.unk0.to_string()}')
+        print(f'\tlen_object_group = {self.len_object_group.to_string(True)}')
+        print(f'\tunk1 = {self.unk1.to_string()}')
+        print(f'\tlen_unk = {self.len_unk.to_string(True)}')
+        print(f'\tobject = {self.object.to_string()}')
         print('}')
 
+    def recursive_print(self):
+        self.pretty_print()
+        if self.object != None: # Hack
+            self.object.value.recursive_print()
+
 class Sh2GeometrySubSection:
-    def __init__(self):
-        self.time_stamp = OffsetValuePair(0, 0)
-        self.object_group_count = OffsetValuePair(0, 0)
-        self.len_geometry_sub_section = OffsetValuePair(0, 0)
-        self.unk0 = OffsetValuePair(0, 0)
-        self.object_groups = OffsetValuePair(0, [])
+    def __init__(self, f):
+        self.time_stamp = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
+        self.object_group_count = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
+        self.len_geometry_sub_section = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
+        self.unk0 = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
+
+        if DEBUG:
+            try:
+                self.pretty_print()
+            except:
+                pass
+
+        self.object_groups = []
+        for _i in range(0, self.object_group_count.value):
+            self.object_groups.append(OffsetValuePair(0, Sh2ObjectGroup(f)))
 
     def get_offset(self):
         return self.time_stamp.offset
 
     def pretty_print(self):
-        print('Sh2GeometrySubSection() =\n{')
-        print('\ttime_stamp = (0x{:X}, {})'.format(self.time_stamp.offset, self.time_stamp.value))
-        print('\tobject_group_count = (0x{:X}, {})'.format(self.object_group_count.offset, self.object_group_count.value))
-        print('\tlen_geometry_sub_section = (0x{:X}, 0x{:X})'.format(self.len_geometry_sub_section.offset, self.len_geometry_sub_section.value))
-        print('\tunk0 = (0x{:X}, {})'.format(self.unk0.offset, self.unk0.value))
-        print('\tobject_groups = (0x{:X}, {})'.format(self.object_groups.offset, self.object_groups.value))
-        print('}')
+            print('Sh2GeometrySubSection() =\n{')
+            print(f'\ttime_stamp = {self.time_stamp.to_string()}')
+            print(f'\tobject_group_count = {self.object_group_count.to_string()}')
+            print(f'\tlen_geometry_sub_section = {self.len_geometry_sub_section.to_string(True)}')
+            print(f'\tunk0 = {self.unk0.to_string()}')
+            print(f'\tobject_groups = {self.object_groups}')
+            print('}')
+
+    def recursive_print(self):
+        self.pretty_print()
+        for og in self.object_groups:
+            og.value.recursive_print()
 
 class Sh2GeometrySection:
-    def __init__(self):
-        self.section_index = OffsetValuePair(0, 0)
-        self.len_data = OffsetValuePair(0, 0)
-        self.unk0 = OffsetValuePair(0, 0)
-        self.geometry_sub_section = OffsetValuePair(0, Sh2GeometrySubSection())
-        self.materials = OffsetValuePair(0, 0)
+    def __init__(self, f):
+        self.section_index = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
+        self.len_data = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
+        self.unk0 = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
+        self.unk1 = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
+
+        if DEBUG:
+            try:
+                self.pretty_print()
+            except:
+                pass
+
+        self.geometry_sub_section = OffsetValuePair(f.tell(), Sh2GeometrySubSection(f))
+
+        self.materials = OffsetValuePair(0, 0) # TODO: Actually parse this
 
     def get_offset(self):
         return self.section_index.offset
 
     def pretty_print(self):
         print('Sh2GeometrySection() =\n{')
-        print('\tsection_index = (0x{:X}, {})'.format(self.section_index.offset, self.section_index.value))
-        print('\tlen_data = (0x{:X}, 0x{:X})'.format(self.len_data.offset, self.len_data.value))
-        print('\tunk0 = (0x{:X}, {})'.format(self.unk0.offset, self.unk0.value))
-        print('\tgeometry_sub_section = (0x{:X}, {})'.format(self.geometry_sub_section.offset, self.geometry_sub_section.value))
-        print('\tmaterials = (0x{:X}, {})'.format(self.materials.offset, self.materials.value))
+        print(f'\tsection_index = {self.section_index.to_string()}')
+        print(f'\tlen_data = {self.len_data.to_string(True)}')
+        print(f'\tunk0 = {self.unk0.to_string()}')
+        print(f'\tunk1 = {self.unk1.to_string()}')
+        print(f'\tgeometry_sub_section = {self.geometry_sub_section.to_string()}')
+        print(f'\tmaterials = {self.materials.to_string()}')
         print('}')
+
+    def recursive_print(self):
+        self.pretty_print()
+        self.geometry_sub_section.value.recursive_print()
 
 def get_objects(f):
 
@@ -170,90 +299,13 @@ def get_objects(f):
         f.read(8)
         f.seek(tex_section_len, 1)
 
-        sh2gs = Sh2GeometrySection()
-        sh2gs.section_index = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
-        sh2gs.len_data = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
-        sh2gs.unk0 = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
-        sh2gs.unk1 = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
+        sh2gs = Sh2GeometrySection(f)
+        sh2gs.recursive_print()
 
-        sh2gs.pretty_print()
-
-        sub_section = sh2gs.geometry_sub_section.value
-        sub_section.time_stamp = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
-        sub_section.object_group_count = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
-        sub_section.len_geometry_sub_section = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
-        sub_section.unk0 = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
-
-        sub_section.pretty_print()
-
-        for _object_group in range(sub_section.object_group_count.value, 0, -1):
-            og = Sh2ObjectGroup()
-            og.unk0 = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
-            og.len_object_group = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
-            og.unk1 = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
-            og.len_unk = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
-
-            og.pretty_print()
-
-            objects.append(og) # keeps sh2_map_rip.py working, remove later
-            sub_section.object_groups.value.append(og)
-
-            # parse Sh2Object
-            ob = Sh2Object()
-            ob.unk0 = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
-            ob.unk1 = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
-            ob.num_bounding_volumes = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
-            # Hack: Skip bounding volumes for now
-            f.read(ob.num_bounding_volumes.value * 4)
-
-            ob.pretty_print()
-
-            #parse Sh2PrimitiveList
-            pl = Sh2PrimitiveList()
-            pl.len_primitive_list = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
-            pl.ofs_index_buffer = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
-            pl.len_index_buffer = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
-            pl.len_unk = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
-            pl.num_prims = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
-
-            pl.pretty_print()
-
-            f.seek(og.get_offset() + og.len_object_group.value)
+        for ob in sh2gs.geometry_sub_section.value.object_groups:
+            objects.append(ob.value)
 
         return objects
-
-def get_object_offsets(f):
-
-        #return [0x1c06e0, 0x1CA5F0, 0x1d4dd0]
-
-        object_offsets = []
-
-        f.read(0x14) # ignore irrelevant data for now
-        tex_section_len = f.read(4)
-        tex_section_len = struct.unpack('<I', tex_section_len)[0]
-        f.read(8)
-        f.seek(tex_section_len, 1)
-
-        f.read(0x14) # discard geom section header and creation date
-        object_count = f.read(4)
-        object_count = struct.unpack('<I', object_count)[0]
-        f.read(8)
-
-        while(object_count > 0):
-
-            print(f'START = 0x{f.tell():x}')
-
-            object_start = f.tell()
-            f.read(4)
-            object_size = f.read(4)
-            object_size = struct.unpack('<I', object_size)[0]
-
-            object_offsets.append(object_start)
-
-            f.seek(object_start + object_size)
-            object_count -= 1
-
-        return object_offsets
 
 def get_primitives(f):
     obj_count = f.read(4)

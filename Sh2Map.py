@@ -1,3 +1,5 @@
+# TODO: Could 1:1 Structs be combined? e.g. GeometrySection contains only one GeometrySubSection
+
 from construct import *
 
 TextureSection = Struct(
@@ -26,7 +28,7 @@ BoundingVolume = Struct(
 SubPrimInfo = Struct(
     'num_prims' / Int16ul,
     'unk' / Int8ul, # usually 0, 1 = garbled polys, >1 = invisible
-    'prim_size' / Int8ul,
+    'prim_len' / Int8ul,
     'vert_start' / Int16ul,
     'vert_end' / Int16ul
 )
