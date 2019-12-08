@@ -292,8 +292,8 @@ class Sh2GeometrySection:
     def __init__(self, f):
         self.section_index = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
         self.len_data = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
-        self.unk0 = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
-        self.unk1 = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
+        self.reserved0 = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
+        self.reserved1 = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
 
         if DEBUG:
             self.pretty_print()
@@ -308,8 +308,8 @@ class Sh2GeometrySection:
             print('Sh2GeometrySection() =\n{')
             print(f'\tsection_index = {self.section_index.to_string()}')
             print(f'\tlen_data = {self.len_data.to_string(True)}')
-            print(f'\tunk0 = {self.unk0.to_string()}')
-            print(f'\tunk1 = {self.unk1.to_string()}')
+            print(f'\treserved0 = {self.reserved0.to_string()}')
+            print(f'\treserved1 = {self.reserved1.to_string()}')
             print(f'\tgeometry_sub_section = {self.geometry_sub_section.to_string()}')
             print('}')
         except:
@@ -323,8 +323,8 @@ class Sh2TextureSection:
     def __init__(self, f):
         self.section_index = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
         self.len_data = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
-        self.unk0 = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
-        self.unk1 = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
+        self.reserved0 = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
+        self.reserved1 = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
 
         # TODO: Actually parse this
         self.data = OffsetValuePair(f.tell(), 0)
@@ -338,8 +338,8 @@ class Sh2TextureSection:
             print('Sh2TextureSection() =\n{')
             print(f'\tsection_index = {self.section_index.to_string()}')
             print(f'\tlen_data = {self.len_data.to_string(True)}')
-            print(f'\tunk0 = {self.unk0.to_string()}')
-            print(f'\tunk1 = {self.unk1.to_string()}')
+            print(f'\treserved0 = {self.reserved0.to_string()}')
+            print(f'\treserved1 = {self.reserved1.to_string()}')
             print(f'\tdata = {self.data.to_string()}')
             print('}')
         except:

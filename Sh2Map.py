@@ -5,8 +5,8 @@ from construct import *
 TextureSection = Struct(
     'section_index' / Int32ul,
     'len_data' / Int32ul,
-    'unk0' / Int32ul,
-    'unk1' / Int32ul,
+    'reserved0' / Int32ul, # Padding to 16 byte bounds?
+    'reserved1' / Int32ul, # Same
     'data' / Bytes(this.len_data)
 )
 
@@ -117,8 +117,8 @@ GeometrySubSection = Struct(
 GeometrySection = Struct(
     'section_index' / Int32ul,
     'len_data' / Int32ul,
-    'unk0' / Int32ul, # Padding to 16 byte bounds?
-    'unk1' / Int32ul, # Same
+    'reserved0' / Int32ul, # Padding to 16 byte bounds?
+    'reserved1' / Int32ul, # Same
     'geometry_sub_section' / GeometrySubSection
 )
 
