@@ -1,24 +1,17 @@
 import struct
-from Sh2Map import Sh2GeometrySection
+from Sh2Map import Sh2Map
 
 def get_objects(f):
 
-        objects = []
+    objects = []
 
-        # TODO: Make this an Sh2Map object
-        f.read(0x14) # ignore irrelevant data for now
-        tex_section_len = f.read(4)
-        tex_section_len = struct.unpack('<I', tex_section_len)[0]
-        f.read(8)
-        f.seek(tex_section_len, 1)
+    sh2map = Sh2Map(f)
+    sh2map.recursive_print()
 
-        sh2gs = Sh2GeometrySection(f)
-        sh2gs.recursive_print()
+    for ob in sh2map.geometry_section.value.geometry_sub_section.value.object_groups:
+        objects.append(ob.value)
 
-        for ob in sh2gs.geometry_sub_section.value.object_groups:
-            objects.append(ob.value)
-
-        return objects
+    return objects
 
 def get_primitives(f):
     obj_count = f.read(4)

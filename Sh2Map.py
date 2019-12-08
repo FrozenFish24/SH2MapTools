@@ -13,9 +13,9 @@ TextureSection = Struct(
 # One of these could be a pixel shader to use
 Material = Struct(
     'texture' / Int32ul, # Maybe an offset to the actual texture data?
-    'unk1' / Int32ul,
+    'unk0' / Int32ul,
     'specularity' / Int32ul, # ???
-    'unk2' / Int32ul
+    'unk1' / Int32ul
 )
 
 # If bounding volume is not visible, geometry is culled?
@@ -90,7 +90,7 @@ Object = Struct(
     'unk1' / Int32ul, # was called 'len_object'
     'num_bounding_volumes' / Int32ul,
     'bounding_volumes' / Array(this.num_bounding_volumes, BoundingVolume),
-    #'prim_list' / PrimitiveList,
+    'prim_list' / PrimitiveList,
     #'vertex_buffers' / VertexBuffers,
     #'index_buffer' / Bytes(this.prim_list.len_index_buffer)
 )
@@ -108,24 +108,24 @@ GeometrySubSection = Struct(
     'time_stamp' / Int32ul, # Very likely wrong
     'object_group_count' / Int32ul,
     'len_geometry_sub_section' / Int32ul,
-    'unk0' / Int32ul,
-    'object_groups' / Array(this.object_group_count, ObjectGroup)
+    'num_materials' / Int32ul,
+    'object_groups' / Array(this.object_group_count, ObjectGroup),
+    'materials' / Array(this.num_materials, Material)
 )
 
 GeometrySection = Struct(
     'section_index' / Int32ul,
     'len_data' / Int32ul,
-    'unk0' / Int32ul,
-    'unk1' / Int32ul,
-    'geometry_sub_section' / GeometrySubSection,
-    'materials' / Material # Does this go here?
+    'unk0' / Int32ul, # Padding to 16 byte bounds?
+    'unk1' / Int32ul, # Same
+    'geometry_sub_section' / GeometrySubSection
 )
 
 Sh2Map = Struct(
     'time_stamp' / Int32ul, # Very likely wrong
     'len_map' / Int32ul,
     'num_sections' / Int32ul,
-    'unk' / Int32ul,
+    'unk' / Int32ul, # Padding to 16 byte bounds?
     'texture_section' / TextureSection,
     'geometry_section' / GeometrySection
 )
