@@ -11,6 +11,7 @@ TextureSection = Struct(
 )
 
 # One of these could be a pixel shader to use
+# Potential bitfields
 Material = Struct(
     'texture' / Int32ul, # Maybe an offset to the actual texture data?
     'unk0' / Int32ul,
@@ -125,7 +126,7 @@ Sh2Map = Struct(
     'time_stamp' / Int32ul, # Very likely wrong
     'len_map' / Int32ul,
     'num_sections' / Int32ul,
-    'unk' / Int32ul, # Padding to 16 byte bounds?
+    'reserved' / Int32ul, # Padding to 16 byte bounds?
     'texture_section' / TextureSection,
     'geometry_section' / GeometrySection
 )

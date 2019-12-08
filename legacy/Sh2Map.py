@@ -353,7 +353,7 @@ class Sh2Map:
         self.time_stamp = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
         self.len_map = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
         self.num_sections = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
-        self.unk = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
+        self.reserved = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
 
         self.texture_section = OffsetValuePair(f.tell(), Sh2TextureSection(f))
 
@@ -368,7 +368,7 @@ class Sh2Map:
             print(f'\ttime_stamp = {self.time_stamp.to_string()}')
             print(f'\tlen_map = {self.len_map.to_string(True)}')
             print(f'\tnum_sections = {self.num_sections.to_string()}')
-            print(f'\tunk = {self.unk.to_string()}')
+            print(f'\treserved = {self.reserved.to_string()}')
             print(f'\ttexture_section = {self.texture_section.to_string()}')
             print(f'\tgeometry_section = {self.geometry_section.to_string()}')
             print('}')
