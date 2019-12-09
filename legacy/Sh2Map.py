@@ -83,7 +83,7 @@ class Sh2PrimitiveInfo:
 
         self.sub_prims = []
         for _i in range(0, self.num_sub_prims.value):
-            self.sub_prims.append(OffsetValuePair(0, Sh2SubPrimInfo(f)))
+            self.sub_prims.append(OffsetValuePair(f.tell(), Sh2SubPrimInfo(f)))
 
     def get_offset(self):
         return self.material_index.offset
@@ -117,7 +117,7 @@ class Sh2PrimitiveList:
 
         self.prim_info = []
         for _i in range(0, self.num_prims.value):
-            self.prim_info.append(OffsetValuePair(0, Sh2PrimitiveInfo(f)))
+            self.prim_info.append(OffsetValuePair(f.tell(), Sh2PrimitiveInfo(f)))
 
     def get_offset(self):
         return self.len_primitive_list.offset
@@ -141,23 +141,56 @@ class Sh2PrimitiveList:
             pi.value.recursive_print()
 
 class Sh2VertexBufferInfo:
-    def __init__(self):
-        self.ofs_start = OffsetValuePair(0, 0)
-        self.stride = OffsetValuePair(0, 0)
-        self.ofs_end = OffsetValuePair(0, 0)
+    def __init__(self, f):
+        self.ofs_start = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
+        self.stride = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
+        self.ofs_end = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
 
     def get_offset(self):
         return self.ofs_start.offset
 
+    def pretty_print(self):
+        try:
+            print('Sh2VertexBufferInfo() =\n{')
+            print(f'\tofs_start = {self.ofs_start.to_string(True)}')
+            print(f'\tstride = {self.stride.to_string()}')
+            print(f'\tofs_end = {self.ofs_end.to_string(True)}')
+            print('}')
+        except:
+            print('{} broken'.format(self.__class__))
+
+    def recursive_print(self):
+        self.pretty_print()
+
 class Sh2VertexBuffer:
-    def __init__(self):
-        self.len_all_vertex_buffers = OffsetValuePair(0, 0)
-        self.num_vertex_buffers = OffsetValuePair(0, 0)
-        self.vertex_buffer_infos = OffsetValuePair(0, Sh2VertexBufferInfo())
-        self.vertex_data = OffsetValuePair(0, [])
+    def __init__(self, f):
+        self.len_all_vertex_buffers = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
+        self.num_vertex_buffers = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
+
+        self.vertex_buffer_infos = []
+        for _i in range(0, self.num_vertex_buffers.value):
+            self.vertex_buffer_infos.append(OffsetValuePair(f.tell(), Sh2VertexBufferInfo(f)))
+
+        self.vertex_data = OffsetValuePair(f.tell(), f.read(self.len_all_vertex_buffers.value))
 
     def get_offset(self):
         return self.len_all_vertex_buffers.offset
+
+    def pretty_print(self):
+        try:
+            print('Sh2VertexBuffer() =\n{')
+            print(f'\tlen_all_vertex_buffers = {self.len_all_vertex_buffers.to_string(True)}')
+            print(f'\tnum_vertex_buffers = {self.num_vertex_buffers.to_string()}')
+            print(f'\tvertex_buffer_infos = {self.vertex_buffer_infos}')
+            print(f'\tvertex_data = {self.vertex_data}')
+            print('}')
+        except:
+            print('{} broken'.format(self.__class__))
+
+    def recursive_print(self):
+        self.pretty_print()
+        for vbi in self.vertex_buffer_infos:
+            vbi.value.recursive_print()
 
 class Sh2BoundingVolume:
     def __init__(self):
@@ -182,9 +215,9 @@ class Sh2Object:
 
         self.prim_list = OffsetValuePair(f.tell(), Sh2PrimitiveList(f))
 
-        # TODO: Keep parsing
-        self.vertex_buffers = OffsetValuePair(0, 0)
-        self.index_buffer = OffsetValuePair(0, 0)
+        self.vertex_buffers = OffsetValuePair(f.tell(), Sh2VertexBuffer(f))
+
+        self.index_buffer = OffsetValuePair(f.tell(), f.read(self.prim_list.value.len_index_buffer.value))
 
     def get_offset(self):
         return self.unk0.offset
@@ -206,6 +239,8 @@ class Sh2Object:
     def recursive_print(self):
         self.pretty_print()
         self.prim_list.value.recursive_print()
+        self.vertex_buffers.value.recursive_print()
+
 
 class Sh2ObjectGroup:
     def __init__(self, f):
@@ -259,11 +294,11 @@ class Sh2GeometrySubSection:
 
         self.object_groups = []
         for _i in range(0, self.object_group_count.value):
-            self.object_groups.append(OffsetValuePair(0, Sh2ObjectGroup(f)))
+            self.object_groups.append(OffsetValuePair(f.tell(), Sh2ObjectGroup(f)))
 
         self.materials = []
         for _i in range(0, self.num_materials.value):
-            self.materials.append(OffsetValuePair(0, Sh2Material(f)))
+            self.materials.append(OffsetValuePair(f.tell(), Sh2Material(f)))
 
     def get_offset(self):
         return self.time_stamp.offset
@@ -328,6 +363,10 @@ class Sh2TextureSection:
 
         # TODO: Actually parse this
         self.data = OffsetValuePair(f.tell(), 0)
+
+        if DEBUG:
+            self.pretty_print()
+
         f.seek(f.tell() + self.len_data.value)
 
     def get_offset(self):
@@ -354,6 +393,9 @@ class Sh2Map:
         self.len_map = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
         self.num_sections = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
         self.reserved = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
+
+        if DEBUG:
+            self.pretty_print()
 
         self.texture_section = OffsetValuePair(f.tell(), Sh2TextureSection(f))
 
