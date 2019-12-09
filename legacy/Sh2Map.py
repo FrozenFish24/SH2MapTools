@@ -192,23 +192,15 @@ class Sh2VertexBuffer:
         for vbi in self.vertex_buffer_infos:
             vbi.value.recursive_print()
 
-class Sh2BoundingVolume:
-    def __init__(self):
-        self.len_bounding_volume = OffsetValuePair(0, 0)
-        self.data = OffsetValuePair(0, 0)
-
-    def get_offset(self):
-        return self.len_bounding_volume.offset
-
 class Sh2Object:
     def __init__(self, f):
         self.unk0 = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
         self.unk1 = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
         self.num_bounding_volumes = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
 
-        # TODO: Actually parse bounding vols
-        self.bounding_volumes = OffsetValuePair(0, 0)
-        f.read(self.num_bounding_volumes.value * 4)
+        self.bounding_volumes = []
+        for _i in range(0, self.num_bounding_volumes.value):
+            self.bounding_volumes.append(struct.unpack('<f', f.read(4))[0])
 
         if DEBUG:
             self.pretty_print()
@@ -228,7 +220,7 @@ class Sh2Object:
             print(f'\tunk0 = {self.unk0.to_string()}')
             print(f'\tunk1 = {self.unk1.to_string()}')
             print(f'\tnum_bounding_volumes = {self.num_bounding_volumes.to_string()}')
-            print(f'\tbounding_volumes = {self.bounding_volumes.to_string()}')
+            print(f'\tbounding_volumes = {self.bounding_volumes}')
             print(f'\tprim_list = {self.prim_list.to_string()}')
             print(f'\tvertex_buffers = {self.vertex_buffers.to_string()}')
             print(f'\tindex_buffer = {self.index_buffer.to_string()}')

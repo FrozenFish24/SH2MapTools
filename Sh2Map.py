@@ -19,13 +19,6 @@ Material = Struct(
     'unk1' / Int32ul
 )
 
-# If bounding volume is not visible, geometry is culled?
-# Haven't seen more complex than two points defining a box
-BoundingVolume = Struct(
-    'len_bounding_volume' / Int32ul,
-    'data' / Bytes(this.len_bounding_volume * 4)
-)
-
 SubPrimInfo = Struct(
     'num_prims' / Int16ul,
     'unk' / Int8ul, # usually 0, 1 = garbled polys, >1 = invisible
@@ -79,7 +72,7 @@ VertexBufferInfo = Struct(
     'ofs_end' / Int32ul,
 )
 
-VertexBuffers = Struct(
+VertexBuffer = Struct(
     'len_all_vertex_buffers' / Int32ul,
     'num_vertex_buffers' / Int32ul,
     'vertex_buffer_infos' / Array(this.num_vertex_buffers, VertexBufferInfo),
@@ -90,10 +83,10 @@ Object = Struct(
     'unk0' / Int32ul,
     'unk1' / Int32ul, # was called 'len_object'
     'num_bounding_volumes' / Int32ul,
-    'bounding_volumes' / Array(this.num_bounding_volumes, BoundingVolume),
+    'bounding_volumes' / Array(this.num_bounding_volumes, Float32l), # If bounding volume is not visible, geometry is culled? Haven't seen more complex than two points defining a box.
     'prim_list' / PrimitiveList,
-    #'vertex_buffers' / VertexBuffers,
-    #'index_buffer' / Bytes(this.prim_list.len_index_buffer)
+    'vertex_buffers' / VertexBuffer,
+    'index_buffer' / Bytes(this.prim_list.len_index_buffer)
 )
 
 # "MapChunk" might be a better name for this?
