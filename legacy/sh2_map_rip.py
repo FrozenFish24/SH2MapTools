@@ -1,137 +1,101 @@
 import os
 import struct
-import pdb
 import errno
 import collada
 import numpy
 
-import common
+from Sh2Map import Sh2Map
 
-# TODO: OOP-ify parsing code
 # TODO: Collada directly supports tri-strips, may remove some complexity
 
 SCALE_X = 0.0060
 SCALE_Y = -0.0060
 SCALE_Z = -0.0060
 
-x_trans = 0.0
-y_trans = 0.0
-z_trans = 0.0
-centered = False
-
 # DEBUG VARS
 map_name = 'ps85'
 
 def main():
-    with open('%s.map' % map_name, 'rb') as f:
-        objects = common.get_objects(f)
-        for ob in objects:
-            ob.pretty_print()
-        print()
+    with open(f'{map_name}.map', 'rb') as f:
+        sh2map = Sh2Map(f)
+        geometry_section = sh2map.geometry_section.value
+        geometry_sub_section = geometry_section.geometry_sub_section.value
+        object_groups = geometry_sub_section.object_groups
 
-        # Hack: Remove Object 03 to avoid crash
-        objects.remove(objects[2])
+        transform = None
 
-        for i in range(0, len(objects)):
-            vb_raw_list, vb_info_list, primitive_list, ib_raw, vb_offsets = rip_object(f, objects[i].get_offset())
+        for i in range(0, len(object_groups)):
+            if(object_groups[i].value.object == None):
+                continue
+
+            obj = object_groups[i].value.object.value
+
+            # Find rough scene center from first object's bounding volume
+            if transform is None:
+                transform = find_scene_center(obj.bounding_volumes)
+
+            primitive_list = obj.prim_list.value
 
             total_index = 0
-            for j in range(0, len(primitive_list)):
-                total_index_backup = total_index
-                current_prim_info = primitive_list[j]
+            for j in range(0, len(primitive_list.prim_info)):
+
+                current_prim_info = primitive_list.prim_info[j].value
+                current_prim_info.recursive_print()
 
                 prim_total = 0
-                vert_starts = []
-                vert_ends = []
-                index = 3
-                for _sub in range(0, current_prim_info[2]):
-                    prim_total += current_prim_info[index]
-                    vert_starts.append(current_prim_info[index+3])
-                    vert_ends.append(current_prim_info[index+4])
-                    index += 5
-                
-                vert_list = extract_verts(vb_raw_list[current_prim_info[1]], vb_info_list[current_prim_info[1]][1], vert_starts, vert_ends)
-                face_list = extract_faces(ib_raw, total_index, prim_total, current_prim_info[5], current_prim_info[6])
+                for sub in range(0, current_prim_info.num_sub_prims.value):
+                    sub_prim = current_prim_info.sub_prims[sub].value
 
-                print(current_prim_info)
+                    prim_total += sub_prim.num_prims.value
 
-                collada_mesh = build_collada(i, j, vert_list, face_list)
-                total_index += prim_total * current_prim_info[5]
+                    vert_buf = obj.vertex_buffers.value.vertex_data.value
+                    stride = obj.vertex_buffers.value.vertex_buffer_infos[current_prim_info.vertex_buffer_index.value].value.stride.value
+                    vert_start = sub_prim.vert_start.value
+                    vert_end = sub_prim.vert_end.value
 
-                # DEBUGGERY
-                start_of_vb = vb_offsets[current_prim_info[1]]
-                start_of_object = current_prim_info[6] * vb_info_list[current_prim_info[1]][1]
-                print('Object {:02d}, Primitve {:02d} = 0x{:X} (Stride = {}) (IB = {})'.format(i,j, start_of_vb + start_of_object, vb_info_list[current_prim_info[1]][1], total_index_backup))
-                # END DEBUG
+                    index_buf = obj.index_buffer.value
+                    base_vertex_index = total_index
+                    primitive_count = prim_total
+                    skip = sub_prim.prim_len.value
+                    start_index = vert_start
 
-                write_collada(f'{map_name}-dump\\{map_name}_{i:02d}_{j:02d}.dae', collada_mesh)
+                    vert_list = extract_verts(vert_buf, stride, vert_start, vert_end)
+                    face_list = extract_faces(index_buf, base_vertex_index, primitive_count, skip, start_index)
 
-def rip_object(f, off):
-    
-    vb_offsets = []
+                    collada_mesh = build_collada(i, j, vert_list, face_list, transform)
+                    total_index += prim_total * sub_prim.prim_len.value
 
-    f.seek(off)
+                    write_collada(f'{map_name}-dump\\{map_name}_{i:02d}_{j:02d}.dae', collada_mesh)
 
-    f.read(0x18) # discard for now
-    bounding_volume_len = f.read(4)
-    bounding_volume_len = struct.unpack('<I', bounding_volume_len)[0]
+                    # DEBUGGERY
+                    #start_of_vb = vb_offsets[current_prim_info[1]]
+                    #start_of_object = current_prim_info[6] * vb_info_list[current_prim_info[1]][1]
+                    #print('Object {:02d}, Primitve {:02d} = 0x{:X} (Stride = {}) (IB = {})'.format(i,j, start_of_vb + start_of_object, vb_info_list[current_prim_info[1]][1], total_index_backup))
+                    # END DEBUG
 
-    bounding_volume = f.read(bounding_volume_len * 4) # ignore occlusion culling volume
-    bounding_volume = struct.unpack('<8f', bounding_volume)
+def find_scene_center(boundingVolume):
+    min_x = boundingVolume[0]
+    max_x = boundingVolume[4]
+    min_y = boundingVolume[1]
+    max_y = boundingVolume[5]
+    min_z = boundingVolume[2]
+    max_z = boundingVolume[6]
 
-    global centered
-    if centered is False:
-        find_scene_center(bounding_volume)
-        centered = True
+    x_trans = (max_x + min_x) / 2
+    y_trans = (max_y + min_y) / 2
+    z_trans = (max_z + min_z) / 2
 
-    f.read(4) # ignore whatever this is
+    return (x_trans, y_trans, z_trans)
 
-    index_buf_ptr = f.read(4)
-    index_buf_ptr = struct.unpack('<I', index_buf_ptr)[0]
-    
-    index_buf_len = f.read(4)
-    index_buf_len = struct.unpack('<I', index_buf_len)[0]
-
-    f.read(4) # discard irrelevant size field
-
-    primitive_list = common.get_primitives(f)
-
-    f.read(4) # discard a size field
-
-    vb_count = f.read(4)
-    vb_count = struct.unpack('<I', vb_count)[0]
-
-    vb_info_list = []
-    for vb in range(0, vb_count):
-        vb_info = f.read(12)
-        vb_info = struct.unpack('<III', vb_info)
-        vb_info_list.append(vb_info)
-
-    vb_raw_list = []
-    for vb in vb_info_list:
-        vb_offsets.append(f.tell())
-        vert_buf_raw = f.read(vb[2])
-        vb_raw_list.append(vert_buf_raw)
-
-    ib_offset = f.tell()
-    ib_raw = f.read(index_buf_len)
-    #ib_raw = f.tell()
-    #f.read(index_buf_len)
-
-    print(f'Index Buffer Offset = 0x{ib_offset:02X}, index Buffer Size = 0x{index_buf_len:02X}')
-
-    return vb_raw_list, vb_info_list, primitive_list, ib_raw, vb_offsets
-
-def extract_verts(vert_buf, stride, vert_starts, vert_ends):
+def extract_verts(vert_buf, stride, vert_start, vert_end):
     vertices = []
-    for i in range(0, len(vert_starts)):
-        for j in range(vert_starts[i] * stride, (vert_ends[i] + 1) * stride, stride):
-            if(stride // 4 == 9):
-                # special case for vertices containing vertex color
-                vertices.append(struct.unpack('<ffffffIff', vert_buf[j:j+stride]))
-            else:
-                format_string = '<' + 'f' * (stride // 4)
-                vertices.append(struct.unpack(format_string, vert_buf[j:j+stride]))
+    for j in range(vert_start * stride, (vert_end + 1) * stride, stride):
+        if(stride // 4 == 9):
+            # special case for vertices containing vertex color
+            vertices.append(struct.unpack('<ffffffIff', vert_buf[j:j+stride]))
+        else:
+            format_string = '<' + 'f' * (stride // 4)
+            vertices.append(struct.unpack(format_string, vert_buf[j:j+stride]))
 
     return vertices
 
@@ -156,7 +120,7 @@ def extract_faces(index_buf, base_vertex_index, primitive_count, skip, start_ind
 
     return face_list
 
-def build_collada(obj_ind, prim_ind, vert_list, face_list):
+def build_collada(obj_ind, prim_ind, vert_list, face_list, transform):
 
     vert_floats = []
     normal_floats = []
@@ -208,7 +172,7 @@ def build_collada(obj_ind, prim_ind, vert_list, face_list):
     geom.primitives.append(triset)
     mesh.geometries.append(geom)
 
-    translate_transform = collada.scene.TranslateTransform(-x_trans * SCALE_X, -y_trans * SCALE_Y, -z_trans * SCALE_Z)
+    translate_transform = collada.scene.TranslateTransform(-transform[0] * SCALE_X, -transform[1] * SCALE_Y, -transform[2] * SCALE_Z)
     scale_transform = collada.scene.ScaleTransform(SCALE_X, SCALE_Y, SCALE_Z)
 
     geomnode = collada.scene.GeometryNode(geom, [])
@@ -219,23 +183,6 @@ def build_collada(obj_ind, prim_ind, vert_list, face_list):
     mesh.scene = myscene
 
     return mesh
-
-def find_scene_center(boundingVolume):
-
-    global x_trans
-    global y_trans
-    global z_trans
-
-    min_x = boundingVolume[0]
-    max_x = boundingVolume[4]
-    min_y = boundingVolume[1]
-    max_y = boundingVolume[5]
-    min_z = boundingVolume[2]
-    max_z = boundingVolume[6]
-
-    x_trans = (max_x + min_x) / 2
-    y_trans = (max_y + min_y) / 2
-    z_trans = (max_z + min_z) / 2
 
 def write_collada(filename, collada_mesh):
 
