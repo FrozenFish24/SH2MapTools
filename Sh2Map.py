@@ -137,10 +137,10 @@ Sh2TransparentObjectGroup(
 
 # Padded to 16 byte bounds
 Sh2TransparentObject(
-    'bounding_volume' / Array(this.num_bounding_volumes, Float32l),
+    'bounding_volume' / Array(8, Float32l),
     'len_bounding_vol_header' / Int32ul,
     'len_bounding_vol_header_and_vb' / Int32ul,
-    'len_index_buffer' / Array(this.num_bounding_volumes, Float32l),
+    'len_index_buffer' / Int32ul,
     'unk2' / Int32ul,
     'unk3' / Int32ul,
     'unk4' / Int32ul,
