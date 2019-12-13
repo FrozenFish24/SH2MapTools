@@ -1,6 +1,7 @@
 import struct
 
 DEBUG = False
+HACKS = False
 
 # TODO: look into less verbose ways to print objects
 # TODO: work out how to gracefully skip corrupt sections
@@ -194,8 +195,8 @@ class Sh2VertexBuffer:
 
 class Sh2Object:
     def __init__(self, f):
-        self.unk0 = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
-        self.unk1 = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
+        self.len_object = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
+        self.object_index = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
         self.num_bounding_volumes = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
 
         self.bounding_volumes = []
@@ -212,13 +213,13 @@ class Sh2Object:
         self.index_buffer = OffsetValuePair(f.tell(), f.read(self.prim_list.value.len_index_buffer.value))
 
     def get_offset(self):
-        return self.unk0.offset
+        return self.len_object.offset
 
     def pretty_print(self):
         try:
             print('Sh2Object() =\n{')
-            print(f'\tunk0 = {self.unk0.to_string()}')
-            print(f'\tunk1 = {self.unk1.to_string()}')
+            print(f'\tlen_object = {self.len_object.to_string(True)}')
+            print(f'\tobject_index = {self.object_index.to_string()}')
             print(f'\tnum_bounding_volumes = {self.num_bounding_volumes.to_string()}')
             print(f'\tbounding_volumes = {self.bounding_volumes}')
             print(f'\tprim_list = {self.prim_list.to_string()}')
@@ -246,7 +247,8 @@ class Sh2ObjectGroup:
             self.pretty_print()
 
         # Hack: Skip broken ObjectGroup in ps85.map
-        if(self.get_offset() == 0x1D49C0):
+        # TODO: Might not actually be broken? Might be some field indicating this needs to be parsed differently? i.e. like the transparent geoms
+        if(HACKS and self.get_offset() == 0x1D49C0):
             f.seek(self.get_offset() + self.len_object_group.value)
             return
 
@@ -276,7 +278,7 @@ class Sh2ObjectGroup:
 
 class Sh2GeometrySubSection:
     def __init__(self, f):
-        self.time_stamp = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
+        self.magic = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
         self.object_group_count = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
         self.len_geometry_sub_section = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
         self.num_materials = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
@@ -293,12 +295,12 @@ class Sh2GeometrySubSection:
             self.materials.append(OffsetValuePair(f.tell(), Sh2Material(f)))
 
     def get_offset(self):
-        return self.time_stamp.offset
+        return self.magic.offset
 
     def pretty_print(self):
         try:
             print('Sh2GeometrySubSection() =\n{')
-            print(f'\ttime_stamp = {self.time_stamp.to_string()}')
+            print(f'\tmagic = {self.magic.to_string(True)}')
             print(f'\tobject_group_count = {self.object_group_count.to_string()}')
             print(f'\tlen_geometry_sub_section = {self.len_geometry_sub_section.to_string(True)}')
             print(f'\tnum_materials = {self.num_materials.to_string()}')
@@ -381,7 +383,7 @@ class Sh2TextureSection:
 
 class Sh2Map:
     def __init__(self, f):
-        self.time_stamp = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
+        self.magic = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
         self.len_map = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
         self.num_sections = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
         self.reserved = OffsetValuePair(f.tell(), struct.unpack('<I', f.read(4))[0])
@@ -394,12 +396,12 @@ class Sh2Map:
         self.geometry_section = OffsetValuePair(f.tell(), Sh2GeometrySection(f))
 
     def get_offset(self):
-        return self.time_stamp.offset
+        return self.magic.offset
 
     def pretty_print(self):
         try:
             print('Sh2Map() =\n{')
-            print(f'\ttime_stamp = {self.time_stamp.to_string()}')
+            print(f'\tmagic = {self.magic.to_string(True)}')
             print(f'\tlen_map = {self.len_map.to_string(True)}')
             print(f'\tnum_sections = {self.num_sections.to_string()}')
             print(f'\treserved = {self.reserved.to_string()}')

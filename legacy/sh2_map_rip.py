@@ -1,4 +1,5 @@
 import os
+import sys
 import struct
 import errno
 import collada
@@ -12,23 +13,31 @@ SCALE_X = 0.0060
 SCALE_Y = -0.0060
 SCALE_Z = -0.0060
 
-# DEBUG VARS
-map_name = 'ps85'
-
 def main():
-    with open(f'{map_name}.map', 'rb') as f:
+    if len(sys.argv) < 2:
+        print(f'Usage: python {os.path.basename(__file__)} <map file>')
+        return
+
+    run(sys.argv[1])
+
+def run(filename, silent=False, test_mode=False):
+    with open(f'{filename}', 'rb') as f:
         sh2map = Sh2Map(f)
+
+        if not silent:
+            sh2map.recursive_print()
+
         geometry_section = sh2map.geometry_section.value
         geometry_sub_section = geometry_section.geometry_sub_section.value
         object_groups = geometry_sub_section.object_groups
 
         transform = None
 
-        for i in range(0, len(object_groups)):
-            if(object_groups[i].value.object == None):
+        for og in range(0, len(object_groups)):
+            if(object_groups[og].value.object == None):
                 continue
 
-            obj = object_groups[i].value.object.value
+            obj = object_groups[og].value.object.value
 
             # Find rough scene center from first object's bounding volume
             if transform is None:
@@ -37,14 +46,13 @@ def main():
             primitive_list = obj.prim_list.value
 
             total_index = 0
-            for j in range(0, len(primitive_list.prim_info)):
+            for pi in range(0, len(primitive_list.prim_info)):
 
-                current_prim_info = primitive_list.prim_info[j].value
-                current_prim_info.recursive_print()
+                current_prim_info = primitive_list.prim_info[pi].value
 
                 prim_total = 0
-                for sub in range(0, current_prim_info.num_sub_prims.value):
-                    sub_prim = current_prim_info.sub_prims[sub].value
+                for sp in range(0, current_prim_info.num_sub_prims.value):
+                    sub_prim = current_prim_info.sub_prims[sp].value
 
                     prim_total += sub_prim.num_prims.value
 
@@ -59,13 +67,14 @@ def main():
                     skip = sub_prim.prim_len.value
                     start_index = vert_start
 
-                    vert_list = extract_verts(vert_buf, stride, vert_start, vert_end)
+                    vert_list = extract_vertices(vert_buf, stride, vert_start, vert_end)
                     face_list = extract_faces(index_buf, base_vertex_index, primitive_count, skip, start_index)
 
-                    collada_mesh = build_collada(i, j, vert_list, face_list, transform)
+                    collada_mesh = build_collada(og, pi, vert_list, face_list, transform)
                     total_index += prim_total * sub_prim.prim_len.value
 
-                    write_collada(f'{map_name}-dump\\{map_name}_{i:02d}_{j:02d}.dae', collada_mesh)
+                    if not test_mode:
+                        write_collada(f'{filename}-dump\\{filename}_{og:02d}_{pi:02d}.dae', collada_mesh)
 
                     # DEBUGGERY
                     #start_of_vb = vb_offsets[current_prim_info[1]]
@@ -73,13 +82,13 @@ def main():
                     #print('Object {:02d}, Primitve {:02d} = 0x{:X} (Stride = {}) (IB = {})'.format(i,j, start_of_vb + start_of_object, vb_info_list[current_prim_info[1]][1], total_index_backup))
                     # END DEBUG
 
-def find_scene_center(boundingVolume):
-    min_x = boundingVolume[0]
-    max_x = boundingVolume[4]
-    min_y = boundingVolume[1]
-    max_y = boundingVolume[5]
-    min_z = boundingVolume[2]
-    max_z = boundingVolume[6]
+def find_scene_center(bounding_volume):
+    min_x = bounding_volume[0]
+    max_x = bounding_volume[4]
+    min_y = bounding_volume[1]
+    max_y = bounding_volume[5]
+    min_z = bounding_volume[2]
+    max_z = bounding_volume[6]
 
     x_trans = (max_x + min_x) / 2
     y_trans = (max_y + min_y) / 2
@@ -87,7 +96,7 @@ def find_scene_center(boundingVolume):
 
     return (x_trans, y_trans, z_trans)
 
-def extract_verts(vert_buf, stride, vert_start, vert_end):
+def extract_vertices(vert_buf, stride, vert_start, vert_end):
     vertices = []
     for j in range(vert_start * stride, (vert_end + 1) * stride, stride):
         if(stride // 4 == 9):

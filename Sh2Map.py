@@ -80,10 +80,10 @@ VertexBuffer = Struct(
 )
 
 Object = Struct(
-    'unk0' / Int32ul,
-    'unk1' / Int32ul, # was called 'len_object'
-    'num_bounding_volumes' / Int32ul,
-    'bounding_volumes' / Array(this.num_bounding_volumes, Float32l), # If bounding volume is not visible, geometry is culled? Haven't seen more complex than two points defining a box.
+    'len_object' / Int32ul, # len includes header, gets you to transparent geometry
+    'object_index' / Int32ul, # ??? or maybe a count of sub structures?
+    'num_bounding_volumes' / Int32ul, # May not be what I think it is, number differs in transparent geom, still 0x20 bytes for volume
+    'bounding_volume' / Array(8, Float32l), # If bounding volume is not visible, geometry is culled? Haven't seen more complex than two points defining a box.
     'prim_list' / PrimitiveList,
     'vertex_buffers' / VertexBuffer,
     'index_buffer' / Bytes(this.prim_list.len_index_buffer)
@@ -91,7 +91,7 @@ Object = Struct(
 
 # "MapChunk" might be a better name for this?
 ObjectGroup = Struct(
-    'unk0' / Int32ul, # Object group index maybe?
+    'unk0' / Int32ul, # SH2,3,4 Viewer (by perdedork@yahoo.com) calls this field 'Main primitive offset' and virtually always claims it's invalid
     'len_object_group' / Int32ul,
     'unk1' / Int32ul,
     'len_unk' / Int32ul, # Only non-zero in MAPs that stream in chunks, size includes vertex buffer and index buffer
@@ -99,7 +99,7 @@ ObjectGroup = Struct(
 )
 
 GeometrySubSection = Struct(
-    'time_stamp' / Int32ul, # Very likely wrong
+    'magic' / Int32ul, # 0x20010730 in numbered map files, 0x19990901 in unnumbered (Creation date in hexspeak? 30/07/2001 and 01/09/1999 ddmmyyyy?)
     'object_group_count' / Int32ul,
     'len_geometry_sub_section' / Int32ul,
     'num_materials' / Int32ul,
@@ -116,10 +116,36 @@ GeometrySection = Struct(
 )
 
 Sh2Map = Struct(
-    'time_stamp' / Int32ul, # Very likely wrong
+    'magic' / Int32ul, # 0x20010510 (Creation date in hexspeak? 10/05/2001 ddmmyyyy?)
     'len_map' / Int32ul,
     'num_sections' / Int32ul,
     'reserved' / Int32ul, # Padding to 16 byte bounds?
     'texture_section' / TextureSection,
     'geometry_section' / GeometrySection
+)
+
+# WIP:
+Sh2TransparentObjectGroup(
+    'num_transparent_objects' / Int32ul,
+    'len_transparent_object' / Int32ul, # Not always?
+    'unk0' / Int32ul,
+    'unk1' / Int32ul,
+    'unk2' / Int32ul,
+    'unk3' / Int32ul,
+    'unk4' / Int32ul,
+    'transparent_objects' / Array(num_transparent_objects, TransparentObject)
+
+# Padded to 16 byte bounds
+Sh2TransparentObject(
+    'bounding_volume' / Array(this.num_bounding_volumes, Float32l),
+    'len_bounding_vol_header' / Int32ul,
+    'len_bounding_vol_header_and_vb' / Int32ul,
+    'len_index_buffer' / Array(this.num_bounding_volumes, Float32l),
+    'unk2' / Int32ul,
+    'unk3' / Int32ul,
+    'unk4' / Int32ul,
+    'verts_per_prim' / Int32ul, # prim size a better name? referenced_verts?
+    'num_prims' / Int32ul,
+    'vertex_buffers' / VertexBuffer,
+    'index_buffer' / Bytes(this.len_index_buffer)
 )
