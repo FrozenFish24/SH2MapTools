@@ -82,7 +82,7 @@ VertexBuffer = Struct(
 Object = Struct(
     'len_object' / Int32ul, # len includes header, gets you to transparent geometry
     'object_index' / Int32ul, # ??? or maybe a count of sub structures?
-    'num_bounding_volumes' / Int32ul, # May not be what I think it is, number differs in transparent geom, still 0x20 bytes for volume
+    'unk0' / Int32ul,  #Maybe this is len_bounding_volume (TODO: Find map file with val other than 8)
     'bounding_volume' / Array(8, Float32l), # If bounding volume is not visible, geometry is culled? Haven't seen more complex than two points defining a box.
     'prim_list' / PrimitiveList,
     'vertex_buffers' / VertexBuffer,
@@ -125,27 +125,31 @@ Sh2Map = Struct(
 )
 
 # WIP:
-Sh2TransparentObjectGroup(
+TransparentObjectGroup(
     'num_transparent_objects' / Int32ul,
     'len_transparent_object' / Int32ul, # Not always?
     'unk0' / Int32ul,
     'unk1' / Int32ul,
     'unk2' / Int32ul,
     'unk3' / Int32ul,
-    'unk4' / Int32ul,
+    'unk4' / Int32ul, # This could still be bounding volume length? (TODO: Find map file with val other than 8)
     'transparent_objects' / Array(num_transparent_objects, TransparentObject)
+)
 
 # Padded to 16 byte bounds
-Sh2TransparentObject(
+TransparentObject(
     'bounding_volume' / Array(8, Float32l),
     'len_bounding_vol_header' / Int32ul,
     'len_bounding_vol_header_and_vb' / Int32ul,
     'len_index_buffer' / Int32ul,
-    'unk2' / Int32ul,
-    'unk3' / Int32ul,
-    'unk4' / Int32ul,
-    'verts_per_prim' / Int32ul, # prim size a better name? referenced_verts?
-    'num_prims' / Int32ul,
+
+    # This chunk might be another sub-struct
+    'unk0' / Int32ul,
+    'material_index' / Int32ul,
+    'vertex_buffer_index' / Int32ul,
+    'verts_per_prim' / Int32ul, # strip_len maybe?
+    'num_prims' / Int32ul, # total prims
+
     'vertex_buffers' / VertexBuffer,
     'index_buffer' / Bytes(this.len_index_buffer)
 )
