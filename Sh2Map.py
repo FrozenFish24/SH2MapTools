@@ -10,12 +10,20 @@ TextureSection = Struct(
     'data' / Bytes(this.len_data)
 )
 
-# One of these could be a pixel shader to use
-# Potential bitfields
 Material = Struct(
-    'texture' / Int32ul, # Maybe an offset to the actual texture data?
-    'unk0' / Int32ul,
-    'specularity' / Int32ul, # ???
+    'type' / Int16ul,               # Known values: 0, 1, 2:
+                                    # 0 uses simpler vertex shader than 1 and 2, ignores tint/specular_color
+                                    # 1 uses more complex vertex shader, respects tint, ignores specular_color
+                                    # 2 uses same vertex shaders as 1, respects tint, respects specular_color
+
+    'ofs_texture' / Int16ul,        # May be an offset to the actual texture data? 0x0000 = no texture
+
+    'tint' / Int32ul,               # A8R8G8B8 Alpha is ignored
+                                    # passed to vertex shader c26, each component transformed to 0.0 - 1.0
+
+    'specular_color' / Int32ul,     # A8R8G8B8 adjusts color of specular reflection
+                                    # passed to vertex shader c27, each component transformed to 0.0 - 0.25 (may depend on map)
+
     'unk1' / Int32ul
 )
 
