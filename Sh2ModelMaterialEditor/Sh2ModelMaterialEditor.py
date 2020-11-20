@@ -4,7 +4,7 @@ from Model import Sh2Model
 from Field import FieldType
 from SimpleMaterial import SimpleMaterial
 
-tooltips = [' Pointer to the next material (Relative start of this material) \n',
+tooltips = [' Pointer to the next material (Relative start of this material) ',
             ' Reserved, zero in all .mdl files ',
             ' Number of elements in first u16 array, array purpose unknown ',
             ' Pointer to first array of u16s, always 128 (Relative start of this material) ',
@@ -38,7 +38,7 @@ tooltips = [' Pointer to the next material (Relative start of this material) \n'
             ' Controls color of specular highlights (R,G,B) \n Range = [0.0 - 128.0] ', ' ', ' ',
             ' Reserved, zero in all .mdl files ',
             ' Index into some array of u16s (An index buffer?) ',
-            ' Number of indices to use (A buffer with length this*2 is malloc\'d at runtime) ',
+            ' Passed to DrawIndexedPrimitive -2 (A buffer with length this*2 is malloc\'d at runtime) ',
             ' Reserved, zero in all .mdl files ',
             #' First array of u16s, purpose unknown ',
             #' Second array of u16s, purpose unknown ',

@@ -92,7 +92,7 @@ class Sh2ModelMaterial(Node):
 
         self.add_field('reserved_3', f, FieldType.u32)
         self.add_field('unk_index', f, FieldType.u32)
-        self.add_field('unk_count', f, FieldType.u32)
+        self.add_field('prim_count', f, FieldType.u32)
         self.add_field('reserved_4', f, FieldType.u32)
 
         f.seek(self.offset + self.at(3).value)
