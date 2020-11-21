@@ -4,15 +4,15 @@ from Model import Sh2Model
 from Field import FieldType
 from SimpleMaterial import SimpleMaterial
 
-tooltips = [' Pointer to the next material (Relative start of this material) ',
+tooltips = [' Length of this material in bytes ',
             ' Reserved, zero in all .mdl files ',
             ' Number of elements in first u16 array, array purpose unknown ',
-            ' Pointer to first array of u16s, always 128 (Relative start of this material) ',
+            ' Offset of first array of u16s, always 128 (Relative start of this material) ',
             ' Number of elements in second u16 array ',
-            ' Pointer to second array of u16s (Relative start of this material) ',
+            ' Offset of second array of u16s (Relative start of this material) ',
             ' Number of elements in third u16 array, always 1 ',
-            ' Pointer to third array of u16s (Relative start of this material) ',
-            ' Pointer to array of 4 u8s containing values for ADDRESSU, ADDRESSV, MAGFILTER and MINFILTER sampler states ',
+            ' Offset of third array of u16s (Relative start of this material) ',
+            ' Offset of array of 4 u8s containing values for ADDRESSU, ADDRESSV, MAGFILTER and MINFILTER sampler states ',
             ' Determines which of the diffuse/ambient/specular color arrays are passed to vertex/pixel shaders \n\n'
             ' 1 = No lighting (fullbright), ignores diffuse, ambient and specular color \n'
             ' 2 = Matte, respects diffuse and ambient color, no specular highlight \n'

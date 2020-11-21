@@ -33,7 +33,7 @@ class Sh2PtrTable(Node):
         self.add_field('ptr_skeleton_index_buffer_part_2', f, FieldType.u32)
         self.add_field('ptr_unk0', f, FieldType.u32)
         self.add_field('material_count', f, FieldType.u32)
-        self.add_field('ptr_material_table', f, FieldType.u32)
+        self.add_field('materials_offset', f, FieldType.u32)
         self.add_field('unk3', f, FieldType.u32)
         self.add_field('ptr_unk1', f, FieldType.u32)
         self.add_field('unk4', f, FieldType.u32)
@@ -52,16 +52,16 @@ class Sh2ModelMaterial(Node):
     def __init__(self, f):
         super().__init__('Sh2ModelMaterial')
 
-        self.add_field('ptr_next', f, FieldType.u32)
+        self.add_field('material_length', f, FieldType.u32)
         self.add_field('reserved_0', f, FieldType.u32)
 
         self.add_field('unk_u16_count_0', f, FieldType.u32)
-        self.add_field('ptr_unk_u16_array_0', f, FieldType.u32)
+        self.add_field('unk_u16_array_0_offset', f, FieldType.u32)
         self.add_field('unk_u16_count_1', f, FieldType.u32)
-        self.add_field('ptr_unk_u16_array_1', f, FieldType.u32)
+        self.add_field('unk_u16_array_1_offset', f, FieldType.u32)
         self.add_field('unk_u16_count_2', f, FieldType.u32)
-        self.add_field('ptr_unk_u16_array_2', f, FieldType.u32)
-        self.add_field('ptr_sampler_state_array', f, FieldType.u32)
+        self.add_field('unk_u16_array_2_offset', f, FieldType.u32)
+        self.add_field('sampler_states_offset', f, FieldType.u32)
 
         self.add_field('material_type', f, FieldType.u8)
         self.add_field('unk_material_subtype', f, FieldType.u8)
