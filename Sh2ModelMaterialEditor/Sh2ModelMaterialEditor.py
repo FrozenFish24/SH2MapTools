@@ -19,6 +19,7 @@ tooltips = [' Pointer to the next material (Relative start of this material) ',
             ' 3 = Seems the same as 2, but always paired with non-zero specular color, unk_diffuse_float and unk_ambient_float \n'
             ' 4 = Glossy, respects diffuse, ambient and specular colors \n'
             ' Any other value = Defaults to type 2/3 behavior ',
+            ' Probably a boolean, binds an extra texture and configures some texture states in stage 1 and 2 ',
             ' Used to identify pieces of the model so their visibility can be toggled \n'
             ' e.g. Swapping James\'s hand pose when using different weapons \n\n'
             ' 0 = Always visible ',
@@ -104,11 +105,11 @@ def create_layout(full=True):
 
     entry_keys.clear()
     if full:
-        for i in range(37):
+        for i in range(38):
             entry_keys.append(f'-ENTRY{i}-')
     else:
         for i in range(37):
-            if i in {9, 10, 11, 12, 13, 14, 18, 19, 20, 22, 23, 24, 26, 27, 28, 33, 34, 35, 36}:
+            if i in {9, 10, 11, 12, 13, 14, 15, 19, 20, 21, 23, 24, 25, 27, 28, 29, 34, 35, 36, 37}:
                 entry_keys.append(f'-ENTRY{i}-')
             else:
                 entry_keys.append(None)
@@ -136,7 +137,7 @@ def full_layout(layout):
             continue
 
         # Skip *_color fields displayed on 1 line
-        if i in {18, 19, 20, 22, 23, 24, 26, 27, 28}:
+        if i in {19, 20, 21, 23, 24, 25, 27, 28, 29}:
             continue
 
         # Lock pointer fields to avoid making files unreadable
@@ -150,7 +151,7 @@ def full_layout(layout):
                                     metadata=current_field, readonly=locked)])
 
         # Special case for *_color fields, display on single line
-        if i in {17, 21, 25}:
+        if i in {18, 22, 26}:
             current_field = materials[current_mat].at(i + 1)
             layout[-1].append(sg.Input(str(current_field.value), size=(20, 1), key=entry_keys[i + 1], enable_events=True, metadata=current_field))
 
@@ -171,7 +172,7 @@ def small_layout(layout):
             continue
 
         # Skip *_color fields displayed on 1 line
-        if i in {19, 20, 23, 24, 27, 28}:
+        if i in {20, 21, 24, 25, 28, 29}:
             continue
 
         current_field = materials[current_mat].at(i)
@@ -180,7 +181,7 @@ def small_layout(layout):
                                     metadata=current_field)])
 
         # Special case for *_color fields, display on single line
-        if i in {18, 22, 26}:
+        if i in {19, 23, 27}:
             current_field = materials[current_mat].at(i + 1)
             layout[-1].append(sg.Input(str(current_field.value), size=(20, 1), key=entry_keys[i + 1], enable_events=True, metadata=current_field))
 
