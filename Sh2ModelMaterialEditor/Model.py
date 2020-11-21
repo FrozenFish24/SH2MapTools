@@ -65,7 +65,8 @@ class Sh2ModelMaterial(Node):
 
         self.add_field('material_type', f, FieldType.u8)
         self.add_field('unk_material_subtype', f, FieldType.u8)
-        self.add_field('pose_id', f, FieldType.u16)
+        self.add_field('pose_id', f, FieldType.u8)
+        self.add_field('unk_byte_0x27', f, FieldType.u8)
 
         self.add_field('cull_backfaces', f, FieldType.u32)
 
