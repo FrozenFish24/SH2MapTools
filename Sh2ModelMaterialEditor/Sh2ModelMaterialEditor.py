@@ -85,8 +85,8 @@ def open_model(filename):
         f.seek(0)
         model = Sh2Model(f)
 
-    ptr_table = model.child_at(0)
-    material_list_og = ptr_table.get_children()
+    offset_table = model.child_at(0)
+    material_list_og = offset_table.get_children()
 
     # Convert to SimpleMaterials for easier display
     material_list = []

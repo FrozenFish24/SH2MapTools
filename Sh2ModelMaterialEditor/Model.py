@@ -10,36 +10,36 @@ class Sh2Model(Node):
         self.add_field('unk0', f, FieldType.u32)
         self.add_field('unk1', f, FieldType.u32)
         self.add_field('num_textures', f, FieldType.u32)
-        self.add_field('ptr_texture_section', f, FieldType.u32)
+        self.add_field('texture_section_offset', f, FieldType.u32)
         self.add_field('unk2', f, FieldType.u32)
-        self.add_field('ptr_ptr_table', f, FieldType.u32)
+        self.add_field('offset_table_offset', f, FieldType.u32)
         self.add_field('unk3', f, FieldType.raw, 0x28)
 
         f.seek(self.offset + self.at(5).value)
 
-        self.add_child(Sh2PtrTable(f))
+        self.add_child(Sh2ModelOffsetTable(f))
 
 
-class Sh2PtrTable(Node):
+class Sh2ModelOffsetTable(Node):
     def __init__(self, f):
-        super().__init__('Sh2PtrTable')
+        super().__init__('Sh2ModelOffsetTable')
 
         self.add_field('unk0', f, FieldType.u32)
         self.add_field('unk1', f, FieldType.u32)
-        self.add_field('ptr_skeleton_points', f, FieldType.u32)
+        self.add_field('skeleton_points_offset', f, FieldType.u32)
         self.add_field('skeleton_point_count', f, FieldType.u32)
-        self.add_field('ptr_skeleton_index_buffer_part_1', f, FieldType.u32)
+        self.add_field('skeleton_index_buffer_part_1_offset', f, FieldType.u32)
         self.add_field('unk2', f, FieldType.u32)
-        self.add_field('ptr_skeleton_index_buffer_part_2', f, FieldType.u32)
-        self.add_field('ptr_unk0', f, FieldType.u32)
+        self.add_field('skeleton_index_buffer_part_2_offset', f, FieldType.u32)
+        self.add_field('unk0_offset', f, FieldType.u32)
         self.add_field('material_count', f, FieldType.u32)
         self.add_field('materials_offset', f, FieldType.u32)
         self.add_field('unk3', f, FieldType.u32)
-        self.add_field('ptr_unk1', f, FieldType.u32)
+        self.add_field('unk1_offset', f, FieldType.u32)
         self.add_field('unk4', f, FieldType.u32)
-        self.add_field('ptr_unk2', f, FieldType.u32)
+        self.add_field('unk2_offset', f, FieldType.u32)
         self.add_field('unk5', f, FieldType.u32)
-        self.add_field('ptr_unk3', f, FieldType.u32)
+        self.add_field('unk3_offset', f, FieldType.u32)
         self.add_field('unk6', f, FieldType.raw, 0x70)
 
         f.seek(self.offset + self.at(9).value)
