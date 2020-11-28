@@ -8,7 +8,7 @@ class Sh2Model(Node):
         super().__init__('Sh2Model')
 
         self.add_field('unk0', f, FieldType.u32)
-        self.add_field('unk1', f, FieldType.u32)
+        self.add_field('model_id', f, FieldType.u32)
         self.add_field('num_textures', f, FieldType.u32)
         self.add_field('texture_section_offset', f, FieldType.u32)
         self.add_field('unk2', f, FieldType.u32)
