@@ -44,7 +44,7 @@ class Sh2ModelOffsetTable(Node):
 
         f.seek(self.offset + self.get('materials_offset').value)
 
-        for _i in range(self.get('material_count').value):
+        for _ in range(self.get('material_count').value):
             self.add_child(Sh2ModelMaterial(f))
 
 
