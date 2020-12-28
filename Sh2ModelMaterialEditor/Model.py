@@ -15,7 +15,7 @@ class Sh2Model(Node):
         self.add_field('offset_table_offset', f, FieldType.u32)
         self.add_field('unk3', f, FieldType.raw, 0x28)
 
-        f.seek(self.offset + self.at(5).value)
+        f.seek(self.offset + self.get('offset_table_offset').value)
 
         self.add_child(Sh2ModelOffsetTable(f))
 
@@ -42,9 +42,9 @@ class Sh2ModelOffsetTable(Node):
         self.add_field('unk3_offset', f, FieldType.u32)
         self.add_field('unk6', f, FieldType.raw, 0x70)
 
-        f.seek(self.offset + self.at(9).value)
+        f.seek(self.offset + self.get('materials_offset').value)
 
-        for _i in range(self.at(8).value):
+        for _i in range(self.get('material_count').value):
             self.add_child(Sh2ModelMaterial(f))
 
 
@@ -140,21 +140,21 @@ class Sh2ModelMaterial(Node):
         self.add_field('reserved_4', f, FieldType.u32)
 
         # First array of u16s, purpose unknown
-        f.seek(self.offset + self.at(3).value)
+        f.seek(self.offset + self.get('unk_u16_array_0_offset').value)
         self.add_child(Sh2UnkU16Array0(f, self.get('unk_u16_count_0').value))
 
         # Second array of u16s, purpose unknown
-        f.seek(self.offset + self.at(5).value)
+        f.seek(self.offset + self.get('unk_u16_array_1_offset').value)
         self.add_child(Sh2UnkU16Array1(f, self.get('unk_u16_count_1').value))
 
         # Third array of u16s, always length 1 in retail .mdls, purpose unknown
-        f.seek(self.offset + self.at(7).value)
+        f.seek(self.offset + self.get('unk_u16_array_2_offset').value)
         self.add_child(Sh2UnkU16Array2(f, self.get('unk_u16_count_2').value))
 
-        f.seek(self.offset + self.at(8).value)
+        f.seek(self.offset + self.get('sampler_states_offset').value)
         self.add_child(Sh2SamplerStateArray(f))
 
-        f.seek(self.offset + self.at(0).value)
+        f.seek(self.offset + self.get('material_length').value)
 
 
 class Sh2UnkU16Array0(Node):
